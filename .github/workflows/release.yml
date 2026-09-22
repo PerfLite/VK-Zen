@@ -80,7 +80,9 @@ jobs:
 
       - name: Build patched APK
         working-directory: morphe-patches-vk
-        run: ./gradlew :patches:patchVk --no-daemon --stacktrace
+        run: |
+          chmod +x gradlew
+          ./gradlew :patches:patchVk --no-daemon --stacktrace
 
       - name: Publish release
         working-directory: morphe-patches-vk
