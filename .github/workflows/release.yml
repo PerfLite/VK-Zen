@@ -93,6 +93,11 @@ jobs:
         working-directory: morphe-patches-vk
         run: |
           chmod +x gradlew
+          # Pre-build the included-library jars first: :patches:sourcesJar
+          # expands them and otherwise races ahead on a clean checkout.
+          ./gradlew :morphe-patches-library:patch-library:jar \
+                    :morphe-patches-library:extension-library:jar \
+                    --no-daemon
           ./gradlew :patches:patchVk --no-daemon --stacktrace
 
       - name: Publish release
