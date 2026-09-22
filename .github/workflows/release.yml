@@ -78,6 +78,17 @@ jobs:
           gh release download "$BASE_RELEASE_TAG" -R "$GITHUB_REPOSITORY" \
             -p vk.apk -O morphe-patches-vk/vk.apk
 
+      - name: Seed mavenLocal with Morphe gradle plugin
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The settings plugin app.morphe.patches is published to Maven Local
+          # (not to a CI-reachable repo). Seed it from the vk-base release.
+          gh release download "$BASE_RELEASE_TAG" -R "$GITHUB_REPOSITORY" \
+            -p app-morphe-m2.tar.gz -O /tmp/app-morphe-m2.tar.gz
+          mkdir -p "$HOME/.m2/repository"
+          tar -xzf /tmp/app-morphe-m2.tar.gz -C "$HOME/.m2/repository"
+
       - name: Build patched APK
         working-directory: morphe-patches-vk
         run: |
