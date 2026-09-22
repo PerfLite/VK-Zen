@@ -1,0 +1,100 @@
+name: Release build
+
+# Builds a signed VK Zen clone on every version tag (v1.2.3) and publishes it
+# as a GitHub Release with the APK attached. The base vk.apk is fetched from a
+# dedicated "vk-base" release (see README note in this file's setup section).
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)build and publish, e.g. v1.0.4'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  BASE_RELEASE_TAG: vk-base   # draft release holding the unpatched vk.apk input
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Resolve target tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout patches repo
+        uses: actions/checkout@v4
+        with:
+          path: morphe-patches-vk
+          ref: ${{ steps.tag.outputs.name }}
+          fetch-depth: 0
+
+      - name: Checkout morphe-patcher (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: MorpheApp/morphe-patcher
+          ref: d2158c255a690a8a4c1944ff911ea2257a35acce
+          path: morphe-patcher
+
+      - name: Checkout morphe-patches-library (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: MorpheApp/morphe-patches-library
+          ref: 8dc6c97c88ec17e80178bddfa7f1b1d9f555d75e
+          path: morphe-patches-library
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform & build-tools 36
+        run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" >/dev/null
+
+      - name: Download base vk.apk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "$BASE_RELEASE_TAG" -R "$GITHUB_REPOSITORY" \
+            -p vk.apk -O morphe-patches-vk/vk.apk
+
+      - name: Build patched APK
+        working-directory: morphe-patches-vk
+        run: ./gradlew :patches:patchVk --no-daemon --stacktrace
+
+      - name: Publish release
+        working-directory: morphe-patches-vk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          # Use the annotated tag message as the changelog, if present.
+          NOTES="$(git tag -l --format='%(contents)' "$TAG" 2>/dev/null || true)"
+          [ -n "$NOTES" ] || NOTES="VK Zen $TAG"
+          printf '%s' "$NOTES" > /tmp/notes.md
+
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" vk-morphe-cloned.apk --clobber -R "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --notes-file /tmp/notes.md
+          else
+            gh release create "$TAG" vk-morphe-cloned.apk \
+              -R "$GITHUB_REPOSITORY" \
+              --title "VK Zen $TAG" \
+              --notes-file /tmp/notes.md
+          fi

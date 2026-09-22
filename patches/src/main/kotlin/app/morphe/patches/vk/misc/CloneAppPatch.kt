@@ -42,6 +42,17 @@ val cloneAppPatch = resourcePatch(
         document("AndroidManifest.xml").use { document ->
             document.documentElement.setAttribute("package", newPackageName)
 
+            // Grant self-update installer the ability to request package installation
+            val installPerm = "android.permission.REQUEST_INSTALL_PACKAGES"
+            val hasInstallPerm = document.getElementsByTagName("uses-permission").asSequence()
+                .map { it as Element }
+                .any { it.getAttribute("android:name") == installPerm }
+            if (!hasInstallPerm) {
+                val up = document.createElement("uses-permission")
+                up.setAttribute("android:name", installPerm)
+                document.documentElement.appendChild(up)
+            }
+
             // Update application and activity labels so clone is easily distinguished from official VK
             val applications = document.getElementsByTagName("application")
             for (i in 0 until applications.length) {

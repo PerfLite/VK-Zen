@@ -291,6 +291,15 @@ public class NavigationFilter {
      */
     public static void onMainActivityResume(final Activity activity) {
         if (activity == null) return;
+        // Throttled, silent OTA self-update check (once per ~12h, only surfaces if newer).
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    app.morphe.extension.vk.ota.OtaUpdater.autoCheck(activity);
+                } catch (Throwable ignored) {}
+            }
+        }, 5000);
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {

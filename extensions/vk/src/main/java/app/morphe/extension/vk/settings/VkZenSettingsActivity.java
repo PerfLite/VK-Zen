@@ -86,6 +86,9 @@ public class VkZenSettingsActivity extends Activity {
         // 5 Slots Tabbar Customization Card
         content.addView(createTabbarSlotsCard());
 
+        // OTA Updates Card
+        content.addView(createUpdateCard());
+
         scrollView.addView(content);
         root.addView(scrollView);
 
@@ -487,6 +490,49 @@ public class VkZenSettingsActivity extends Activity {
         lp.setMargins(0, 0, 0, dp(12));
         card.setLayoutParams(lp);
         card.setPadding(dp(16), dp(16), dp(16), dp(16));
+
+        return card;
+    }
+
+    private View createUpdateCard() {
+        LinearLayout card = createCardLayout();
+
+        TextView title = new TextView(this);
+        title.setText("Обновления");
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setTextColor(colorTextPrimary);
+        card.addView(title);
+
+        TextView desc = new TextView(this);
+        desc.setText("Текущая версия: " + app.morphe.extension.vk.ota.OtaUpdater.CURRENT_VERSION
+                + "\nПроверка выполняется автоматически не чаще раза в 12 часов.");
+        desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        desc.setTextColor(colorTextSecondary);
+        desc.setPadding(0, dp(2), 0, dp(12));
+        card.addView(desc);
+
+        TextView btnCheck = new TextView(this);
+        btnCheck.setText("Проверить обновления");
+        btnCheck.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        btnCheck.setTypeface(Typeface.DEFAULT_BOLD);
+        btnCheck.setTextColor(Color.WHITE);
+        btnCheck.setGravity(Gravity.CENTER);
+        GradientDrawable btnBg = new GradientDrawable();
+        btnBg.setColor(colorAccent);
+        btnBg.setCornerRadius(dp(8));
+        btnCheck.setBackground(btnBg);
+        LinearLayout.LayoutParams lpBtn = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(44));
+        lpBtn.setMargins(0, dp(4), 0, 0);
+        btnCheck.setLayoutParams(lpBtn);
+        btnCheck.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                app.morphe.extension.vk.ota.OtaUpdater.manualCheck(VkZenSettingsActivity.this);
+            }
+        });
+        card.addView(btnCheck);
 
         return card;
     }

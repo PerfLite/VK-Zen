@@ -5,55 +5,20 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
 
-private const val EXTENSION_CLASS = "Lapp/morphe/extension/vk/music/MusicCache;"
-
 /**
- * AlertMusicTrackModel (xsna.x02) — wraps the real track actions model and blocks
- * the "download" action with a subscription popup when hasMusicSubscription() is
- * false. Replacing the body routes every press straight to the extension MP3 saver.
+ * MusicSubscriptionProviderImpl (xsna.mva0) — c() is hasMusicSubscription().
+ * Every native download entry point (the player download icon via the offline
+ * manager, and the "download" action via the interactor / bottom-sheet model)
+ * gates on this single boolean before delegating to the real worker
+ * MusicDownloadInteractorImpl.m(track). Forcing it to true lets the native
+ * offline downloader run without a subscription, so pressed tracks land in
+ * VK's encrypted offline cache and appear in the "Downloaded" section.
  */
-internal object AlertMusicTrackModelDownloadFingerprint : Fingerprint(
-    definingClass = "Lxsna/x02;",
-    name = "M",
-    returnType = "V",
-    parameters = listOf("Landroid/content/Context;", "Lcom/vk/dto/music/MusicTrack;")
-)
-
-/**
- * MusicDownloadInteractorImpl (xsna.b4a0) — entry point of the track "download"
- * action. Gates on network state and music subscription before delegating to the
- * worker m(track). The prologue sends the track to the extension instead.
- */
-internal object DownloadInteractorDownloadFingerprint : Fingerprint(
-    definingClass = "Lxsna/b4a0;",
-    name = "l",
-    returnType = "V",
-    parameters = listOf("Landroid/content/Context;", "Lcom/vk/dto/music/MusicTrack;")
-)
-
-/**
- * MusicDownloadInteractorImpl (xsna.b4a0) — the single worker every track
- * download funnels into (from l and from the offline manager's J). Replacing its
- * body with a call to the extension turns every manual download press into a
- * plain MP3 file in Music/VK Morphe, bypassing the encrypted offline cache.
- */
-internal object DownloadInteractorDownloadWorkerFingerprint : Fingerprint(
-    definingClass = "Lxsna/b4a0;",
-    name = "m",
-    returnType = "V",
-    parameters = listOf("Lcom/vk/dto/music/MusicTrack;")
-)
-
-/**
- * MusicOfflineManagerImpl (xsna.eda0) — alternate track download entry that
- * throws SubscriptionExpiredException when unsubscribed. The prologue sends the
- * track to the extension instead.
- */
-internal object MusicOfflineManagerDownloadFingerprint : Fingerprint(
-    definingClass = "Lxsna/eda0;",
-    name = "J",
-    returnType = "V",
-    parameters = listOf("Lcom/vk/dto/music/MusicTrack;")
+internal object MusicSubscriptionProviderHasSubscriptionFingerprint : Fingerprint(
+    definingClass = "Lxsna/mva0;",
+    name = "c",
+    returnType = "Z",
+    parameters = emptyList()
 )
 
 /**
@@ -99,51 +64,22 @@ internal object PrefetchConfigDisabledEFingerprint : Fingerprint(
 
 @Suppress("unused")
 val musicCachePatch = bytecodePatch(
-    name = "Save tracks as MP3 on download",
-    description = "Makes the native download button save the track as a plain MP3 into Music/VK Morphe " +
-        "instead of the encrypted offline cache, without a VK Music subscription. " +
-        "Also re-enables the music player disk cache.",
+    name = "Unlock offline music downloads",
+    description = "Makes the native download buttons (player icon and the \"download\" menu action) " +
+        "work without a VK Music subscription, so tracks are saved to VK's offline cache and " +
+        "appear in the \"Downloaded\" section for offline listening. Also re-enables the music player disk cache.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_VK)
 
-    extendWith("extensions/vk.mpe")
-
     execute {
-        // 1. Bottom-sheet entry: subscription gate + dialog replaced by the extension.
-        AlertMusicTrackModelDownloadFingerprint.method.addInstructions(
+        // Pretend the account always has an active music subscription so every
+        // download gate routes straight to the native offline downloader.
+        MusicSubscriptionProviderHasSubscriptionFingerprint.method.addInstructions(
             0,
             """
-                invoke-static/range { p2 .. p2 }, $EXTENSION_CLASS->onDownloadRequested(Ljava/lang/Object;)V
-                return-void
-            """
-        )
-
-        // 2. Interactor entry (network + subscription gates skipped).
-        DownloadInteractorDownloadFingerprint.method.addInstructions(
-            0,
-            """
-                invoke-static/range { p2 .. p2 }, $EXTENSION_CLASS->onDownloadRequested(Ljava/lang/Object;)V
-                return-void
-            """
-        )
-
-        // 3. Alternate entry from the offline manager (was: SubscriptionExpiredException).
-        MusicOfflineManagerDownloadFingerprint.method.addInstructions(
-            0,
-            """
-                invoke-static/range { p1 .. p1 }, $EXTENSION_CLASS->onDownloadRequested(Ljava/lang/Object;)V
-                return-void
-            """
-        )
-
-        // 4. Worker: every download request lands in the extension MP3 saver.
-        //    Early return makes the rest of the native (encrypted) queueing dead code.
-        DownloadInteractorDownloadWorkerFingerprint.method.addInstructions(
-            0,
-            """
-                invoke-static/range { p1 .. p1 }, $EXTENSION_CLASS->onDownloadRequested(Ljava/lang/Object;)V
-                return-void
+                const/4 v0, 0x1
+                return v0
             """
         )
 
