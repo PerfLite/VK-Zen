@@ -76,7 +76,7 @@ public class OtaUpdater {
     private static final String INSTALL_ACTION = "app.morphe.extension.ota.INSTALL_RESULT";
 
     /** OTA version of this build. Bump in lockstep with the GitHub release tag. */
-    public static final String CURRENT_VERSION = "1.0.3";
+    public static final String CURRENT_VERSION = "1.0.4";
 
     private static volatile boolean autoChecking = false;
     private static volatile boolean manualChecking = false;
