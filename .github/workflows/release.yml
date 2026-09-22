@@ -93,10 +93,10 @@ jobs:
         working-directory: morphe-patches-vk
         run: |
           chmod +x gradlew
-          # Pre-build the included-library jars first: :patches:sourcesJar
-          # expands them and otherwise races ahead on a clean checkout.
+          # Pre-build the included JVM library jar first: :patches:sourcesJar
+          # expands morphe-patches-library-*.jar and otherwise races ahead on a
+          # clean checkout. (extension-library is an Android lib with no jar task.)
           ./gradlew :morphe-patches-library:patch-library:jar \
-                    :morphe-patches-library:extension-library:jar \
                     --no-daemon
           ./gradlew :patches:patchVk --no-daemon --stacktrace
 
