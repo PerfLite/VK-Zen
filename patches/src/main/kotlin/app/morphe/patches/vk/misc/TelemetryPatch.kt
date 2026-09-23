@@ -26,46 +26,10 @@ internal object MyTrackerTrackEventWithMapFingerprint : Fingerprint(
     parameters = listOf("Ljava/lang/String;", "Ljava/util/Map;")
 )
 
-internal object AppStartReporterBFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/stat/AppStartReporter;",
-    name = "b",
-    returnType = "V"
-)
-
-internal object AppStartReporterCFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/stat/AppStartReporter;",
-    name = "c",
-    returnType = "V"
-)
-
-internal object NativeAdAnalyticsSenderAFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "NativeAdUserLevelAnalyticsSenderImpl.kt" && !classDef.type.contains("\$") },
-    name = "a",
-    returnType = "V"
-)
-
-internal object NativeAdAnalyticsSenderBFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "NativeAdUserLevelAnalyticsSenderImpl.kt" && !classDef.type.contains("\$") },
-    name = "b",
-    returnType = "V"
-)
-
-internal object NativeAdAnalyticsSenderCFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "NativeAdUserLevelAnalyticsSenderImpl.kt" && !classDef.type.contains("\$") },
-    name = "c",
-    returnType = "V"
-)
-
-internal object BaseAnalyticsSenderFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "BaseAnalyticsSender.kt" && classDef.type == "Lxsna/qv6;" },
-    name = "a",
-    returnType = "V"
-)
-
 @Suppress("unused")
 val telemetryPatch = bytecodePatch(
     name = "Disable telemetry",
-    description = "Disables MyTracker, VK Stat / AppStartReporter, and native ad analytics senders."
+    description = "Disables MyTracker analytics. VK's internal AppStartReporter / BaseAnalyticsSender are intentionally left intact because they carry notification-sync/heartbeat traffic (stubbing them made the unread badge stick and delayed message pushes)."
 ) {
     compatibleWith(COMPATIBILITY_VK)
 
@@ -80,30 +44,6 @@ val telemetryPatch = bytecodePatch(
             addInstructions(0, "return-void")
         }
         MyTrackerTrackEventWithMapFingerprint.method.apply {
-            addInstructions(0, "return-void")
-        }
-
-        // Suppress AppStartReporter background polling / reporter loops
-        AppStartReporterBFingerprint.method.apply {
-            addInstructions(0, "return-void")
-        }
-        AppStartReporterCFingerprint.method.apply {
-            addInstructions(0, "return-void")
-        }
-
-        // Suppress native ad telemetry & attribution reporting
-        NativeAdAnalyticsSenderAFingerprint.method.apply {
-            addInstructions(0, "return-void")
-        }
-        NativeAdAnalyticsSenderBFingerprint.method.apply {
-            addInstructions(0, "return-void")
-        }
-        NativeAdAnalyticsSenderCFingerprint.method.apply {
-            addInstructions(0, "return-void")
-        }
-
-        // Suppress base ad/event analytics sender
-        BaseAnalyticsSenderFingerprint.method.apply {
             addInstructions(0, "return-void")
         }
     }
