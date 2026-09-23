@@ -189,6 +189,61 @@ private fun patchNativeAntiTamper(apkFile: File, sha1Hex: String) {
             }
             Files.write(armv7Path, b, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
         }
+
+        // libvkmedia.so runs its OWN native signature anti-tamper. The verify routine
+        // (which xrefs the "signatures"/"PackageManager" JNI strings around file 0x68-0x6d)
+        // ends in four "kill blocks", each of the form `mov w0, #1 ; bl _exit` -> the process
+        // "exits cleanly (1)" ~60 ms after the audio path loads this .so (voice messages),
+        // with no Java stack and no tombstone. libc `exit` is not imported at all; only
+        // `_exit` (PLT stub 0x6da90) is, which is why `Zygo te ... exited cleanly (1)` appears.
+        //
+        // Each kill block is entered ONLY by one conditional branch that tests the verify
+        // result. The three tbz sites (0x68874/0x689ac/0x68f1c) jump to exit-only kill blocks,
+        // so a plain `nop` (fall-through to valid continuation) is enough. The 0x6d540 site is
+        // different: after neutralizing its `_exit` block we found that its fall-through lands
+        // in a JNI `ThrowNew(Exception, "error! verify new libraries in application!")` block
+        // (message string @0x6a14, single xref @0x6d574, ThrowNew @0x6d580), which was crashing
+        // voice RECORD with a Java fatal instead of the old clean exit. So there we redirect the
+        // branch UNCONDITIONALLY to the routine's clean epilogue `ret` at 0x6d5c0, skipping BOTH
+        // the exit block (0x6d5e0) and the throw block: `b #0x6d5c0` = 0x14000020 = 20 00 00 14.
+        //
+        // Do NOT patch the sibling calls that resolve to a PLT stub *named* "exit" near
+        // 0x2b-0x57 — those are math veneers used by the DSP codec (GOT-name collision), and
+        // the 0x6a4a8/0x6a720/0x6b890 calls hit C++ stream destructors, not the kill path.
+        // arm64 only; armeabi-v7a is never loaded on the user's device.
+        // Triple: (file offset, expected original bytes, replacement bytes)
+        val aarch64Nop = byteArrayOf(0x1f, 0x20, 0x03, 0xd5.toByte()) // d503201f
+        val vkMediaTamperBranchSites = listOf(
+            Triple(0x68874, byteArrayOf(0x80.toByte(), 0x07, 0x00, 0x36), aarch64Nop), // tbz -> exit block 0x68964
+            Triple(0x689ac, byteArrayOf(0x80.toByte(), 0x29, 0x00, 0x36), aarch64Nop), // tbz -> exit block 0x68edc
+            Triple(0x68f1c, byteArrayOf(0x80.toByte(), 0x08, 0x00, 0x36), aarch64Nop), // tbz -> exit block 0x6902c
+            // b.eq -> exit block 0x6d5e0; fall-through was the ThrowNew fatal -> redirect to ret @0x6d5c0
+            Triple(0x6d540, byteArrayOf(0x00, 0x05, 0x00, 0x54), byteArrayOf(0x20, 0x00, 0x00, 0x14)),
+        )
+        val mediaPath = fs.getPath("lib/arm64-v8a/libvkmedia.so")
+        if (Files.exists(mediaPath)) {
+            val mb = Files.readAllBytes(mediaPath)
+            var patched = 0
+            var skipped = 0
+            for ((off, expect, repl) in vkMediaTamperBranchSites) {
+                if (off + expect.size <= mb.size &&
+                    mb.copyOfRange(off, off + expect.size).contentEquals(expect)
+                ) {
+                    repl.copyInto(mb, off)
+                    patched++
+                    println("Neutralized libvkmedia tamper-kill branch at file offset 0x${off.toString(16)}")
+                } else {
+                    skipped++
+                    println("WARNING: expected kill branch not found at 0x${off.toString(16)} (VK layout changed?) — site left untouched")
+                }
+            }
+            if (patched > 0) {
+                Files.write(mediaPath, mb, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+                println("Neutralized $patched/${vkMediaTamperBranchSites.size} libvkmedia tamper-kill branches (skipped=$skipped)")
+            } else {
+                println("WARNING: no libvkmedia kill branches matched — voice messages may still crash")
+            }
+        }
     }
 }
 
