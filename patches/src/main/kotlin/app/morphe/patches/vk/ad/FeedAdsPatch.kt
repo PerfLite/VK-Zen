@@ -414,62 +414,17 @@ val feedAdsPatch = bytecodePatch(
             )
         }
 
-        // Filter feed entries in legacy NewsfeedData constructor
-        NewsfeedDataConstructorFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    invoke-static { p1 }, $EXTENSION_CLASS->filterNewsfeedList(Ljava/util/List;)Ljava/util/List;
-                    move-result-object p1
-                """
-            )
-        }
+        // NOTE: The reflection-based `filterNewsfeedList` hooks on the data/pagination
+        // layer (NewsfeedData ctor, NewsEntriesContainer ctor) and the hot presenter
+        // path (EntriesListPresenter.m/n/K) were REMOVED. isAdItem does several
+        // reflective getDeclaredField calls per Post and ran on every feed emission,
+        // which made the feed load sluggishly; filtering the DTO containers also shrank
+        // each page and broke pagination ("лента не охотно грузит"). Ads are still
+        // hidden by the cheap PostDisplayItemsBuilder.* return-void suppressions and the
+        // DTO mapper nulls below, which target ad types without touching the list.
 
-        // Filter feed entries in modern NewsEntriesContainer constructor
-        NewsEntriesContainerConstructorFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    invoke-static { p2 }, $EXTENSION_CLASS->filterNewsfeedList(Ljava/util/List;)Ljava/util/List;
-                    move-result-object p2
-                """
-            )
-        }
-
-        // Filter feed entries in EntriesListPresenter.m (setItems)
-        EntriesListPresenterSetItemsFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    invoke-static { p1 }, $EXTENSION_CLASS->filterNewsfeedList(Ljava/util/List;)Ljava/util/List;
-                    move-result-object p1
-                """
-            )
-        }
-
-        // Filter feed entries in EntriesListPresenter.n (addItems)
-        EntriesListPresenterAddItemsFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    invoke-static { p1 }, $EXTENSION_CLASS->filterNewsfeedList(Ljava/util/List;)Ljava/util/List;
-                    move-result-object p1
-                """
-            )
-        }
-
-        // Filter feed entries in EntriesListPresenter.K
-        EntriesListPresenterKFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    invoke-static { p1 }, $EXTENSION_CLASS->filterNewsfeedList(Ljava/util/List;)Ljava/util/List;
-                    move-result-object p1
-                """
-            )
-        }
-
-        // Remove ads and filter stories containers in GetStoriesResponse
+        // Remove ads and null StoriesAds in GetStoriesResponse (stories list is short,
+        // so this reflection is cheap and not on the main-feed hot path)
         GetStoriesResponseConstructorFingerprint.method.apply {
             addInstructions(
                 0,
