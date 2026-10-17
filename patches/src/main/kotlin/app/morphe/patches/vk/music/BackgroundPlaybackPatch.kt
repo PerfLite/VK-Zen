@@ -15,9 +15,96 @@ internal object MusicRestrictionPopupDisplayerEFingerprint : Fingerprint(
     name = "e"
 )
 
-internal object MusicRestrictionPopupDisplayerBFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/music/notifications/restriction/MusicRestrictionPopupDisplayer;",
-    name = "b"
+// BaseMusicRestrictionPopupDisplayer
+internal object BaseMusicRestrictionPopupDisplayerCFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "c" &&
+            method.parameterTypes.size == 1
+    },
+    returnType = "V"
+)
+
+internal object BaseMusicRestrictionPopupDisplayerFFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "f" &&
+            method.parameterTypes.isEmpty()
+    },
+    returnType = "V"
+)
+
+internal object BaseMusicRestrictionPopupDisplayerGFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "g" &&
+            method.parameterTypes.size == 2
+    },
+    returnType = "V"
+)
+
+internal object BaseMusicRestrictionPopupDisplayerHFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "h" &&
+            method.parameterTypes.size == 6
+    },
+    returnType = "V"
+)
+
+internal object BaseMusicRestrictionPopupDisplayerIFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "i" &&
+            method.parameterTypes.size == 1
+    },
+    returnType = "V"
+)
+
+internal object BaseMusicRestrictionPopupDisplayerKFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "k" &&
+            method.parameterTypes.size == 4
+    },
+    returnType = "V"
+)
+
+internal object BaseMusicRestrictionPopupDisplayerLFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "l" &&
+            method.parameterTypes.size == 1
+    },
+    returnType = "V"
+)
+
+internal object BaseMusicRestrictionPopupDisplayerMFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "m" &&
+            method.parameterTypes.size == 1
+    },
+    returnType = "V"
+)
+
+// VkMusicRestrictionPopupDisplayer (opens BuyMusicSubscription popup bottomsheet)
+internal object VkMusicRestrictionPopupDisplayerAFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VkMusicRestrictionPopupDisplayer.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "a" &&
+            method.parameterTypes.size == 6
+    },
+    returnType = "V"
 )
 
 internal object MusicPrefsPlayedTimeFingerprint : Fingerprint(
@@ -76,7 +163,65 @@ val backgroundPlaybackPatch = bytecodePatch(
             """
         )
 
-        MusicRestrictionPopupDisplayerBFingerprint.method.addInstructions(
+        // Disable all restriction dialogs and subscription popups in BaseMusicRestrictionPopupDisplayer
+        BaseMusicRestrictionPopupDisplayerCFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        BaseMusicRestrictionPopupDisplayerFFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        BaseMusicRestrictionPopupDisplayerGFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        BaseMusicRestrictionPopupDisplayerHFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        BaseMusicRestrictionPopupDisplayerIFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        BaseMusicRestrictionPopupDisplayerKFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        BaseMusicRestrictionPopupDisplayerLFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        BaseMusicRestrictionPopupDisplayerMFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        // Disable BuyMusicSubscription popup in VkMusicRestrictionPopupDisplayer
+        VkMusicRestrictionPopupDisplayerAFingerprint.method.addInstructions(
             0,
             """
                 return-void

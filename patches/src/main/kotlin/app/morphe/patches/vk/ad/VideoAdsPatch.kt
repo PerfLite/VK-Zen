@@ -92,10 +92,74 @@ internal object VideoAttachmentGcFingerprint : Fingerprint(
     returnType = "V"
 )
 
+// VideoGrowthTrapsManagerImpl (Video growth traps and superapp standalone bottomsheet / bombing popups)
+internal object VideoGrowthTrapsManagerAFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "a" &&
+            method.parameterTypes.size == 4
+    },
+    returnType = "V"
+)
+
+internal object VideoGrowthTrapsManagerBFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "b" &&
+            method.parameterTypes.size == 4
+    },
+    returnType = "V"
+)
+
+internal object VideoGrowthTrapsManagerCFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "c" &&
+            method.parameterTypes.size == 3
+    },
+    returnType = "V"
+)
+
+// VideoGrowthTrapLauncherImpl
+internal object VideoGrowthTrapLauncherAFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthTrapLauncherImpl.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "a" &&
+            method.parameterTypes.size == 2
+    },
+    returnType = "V"
+)
+
+// VideoGrowthBombingControllerImpl
+internal object VideoGrowthBombingControllerAFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthBombingControllerImpl.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "a" &&
+            method.parameterTypes.isEmpty()
+    },
+    returnType = "Z"
+)
+
+// VideoGrowthListingControllerImpl
+internal object VideoGrowthListingControllerBFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthListingControllerImpl.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "b" &&
+            method.parameterTypes.size == 1
+    },
+    returnType = "Z"
+)
+
 @Suppress("unused")
 val videoAdsPatch = bytecodePatch(
     name = "Video ads",
-    description = "Blocks video player in-stream advertisements (prerolls, midrolls, postrolls, ad overlays) and attached promo ad cards below videos.",
+    description = "Blocks video player in-stream advertisements (prerolls, midrolls, postrolls, ad overlays), attached promo ad cards below videos, and VK Video / RuStore download prompts.",
     default = true
 ) {
     compatibleWith(COMPATIBILITY_VK)
@@ -198,5 +262,63 @@ val videoAdsPatch = bytecodePatch(
                 """
             )
         }
+
+        // Neutralize VideoGrowth traps and "Смотри в приложении VK Видео" popups / bottomsheets
+        VideoGrowthTrapsManagerAFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    return-void
+                """
+            )
+        }
+
+        VideoGrowthTrapsManagerBFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    return-void
+                """
+            )
+        }
+
+        VideoGrowthTrapsManagerCFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    return-void
+                """
+            )
+        }
+
+        VideoGrowthTrapLauncherAFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    return-void
+                """
+            )
+        }
+
+        VideoGrowthBombingControllerAFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    const/4 v0, 0x0
+                    return v0
+                """
+            )
+        }
+
+        VideoGrowthListingControllerBFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    const/4 v0, 0x0
+                    return v0
+                """
+            )
+        }
     }
 }
+
