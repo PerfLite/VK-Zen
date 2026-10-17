@@ -65,7 +65,7 @@ public class FeedAdsFilter {
                     }
                 } catch (Throwable ignored) {}
 
-                // 5. Check ShitAttachment in attachments
+                // 5. Check ShitAttachment in attachments (unwrapping EntryAttachment if wrapped)
                 try {
                     Field fz = item.getClass().getDeclaredField("z");
                     fz.setAccessible(true);
@@ -73,8 +73,22 @@ public class FeedAdsFilter {
                     if (attaches instanceof List) {
                         List<?> list = (List<?>) attaches;
                         for (Object attach : list) {
-                            if (attach != null && attach.getClass().getName().contains("ShitAttachment")) {
-                                return true;
+                            if (attach == null) continue;
+                            Object real = unwrapAttachment(attach);
+                            if (real != null) {
+                                String rName = real.getClass().getName();
+                                // Standalone ShitAttachment without video is an ad post
+                                if (rName.endsWith(".ShitAttachment")) {
+                                    try {
+                                        Field fVideo = real.getClass().getDeclaredField("I");
+                                        fVideo.setAccessible(true);
+                                        if (fVideo.get(real) == null) {
+                                            return true;
+                                        }
+                                    } catch (Throwable t) {
+                                        return true;
+                                    }
+                                }
                             }
                         }
                     }
@@ -83,6 +97,17 @@ public class FeedAdsFilter {
         }
 
         return false;
+    }
+
+    private static Object unwrapAttachment(Object attach) {
+        if (attach == null) return null;
+        try {
+            Field fb = attach.getClass().getDeclaredField("b");
+            fb.setAccessible(true);
+            Object inner = fb.get(attach);
+            if (inner != null) return inner;
+        } catch (Throwable ignored) {}
+        return attach;
     }
 
     private static boolean isAdClassName(String className) {
@@ -112,19 +137,74 @@ public class FeedAdsFilter {
                 List<?> list = (List<?>) attaches;
                 ArrayList<Object> cleaned = new ArrayList<>(list.size());
                 boolean modified = false;
-                for (Object attach : list) {
-                    if (attach == null) continue;
-                    String aName = attach.getClass().getName();
-                    if (aName.contains("ShitAttachment") || aName.contains("MiniAppSnippetAttachment")) {
+                for (Object item : list) {
+                    if (item == null) continue;
+
+                    Object actualAttach = unwrapAttachment(item);
+                    String aName = actualAttach.getClass().getName();
+
+                    // Remove standalone promo/ad attachments
+                    if (aName.contains("ShitAttachment")
+                            || aName.contains("MiniAppSnippetAttachment")
+                            || aName.contains("ActionButtonAttachment")) {
                         modified = true;
                         continue;
                     }
-                    cleaned.add(attach);
+
+                    // If it is a VideoAttachment (or VideoSnippetAttachment):
+                    // Strip the attached ShitAttachment (field h) which displays ad cards below video
+                    if (aName.contains("VideoAttachment") || aName.contains("VideoSnippetAttachment")) {
+                        try {
+                            Field fh = actualAttach.getClass().getDeclaredField("h");
+                            fh.setAccessible(true);
+                            if (fh.get(actualAttach) != null) {
+                                fh.set(actualAttach, null);
+                                modified = true;
+                            }
+                        } catch (Throwable ignored) {}
+
+                        try {
+                            Field fk = actualAttach.getClass().getDeclaredField("k");
+                            fk.setAccessible(true);
+                            Object vf = fk.get(actualAttach);
+                            if (vf != null) {
+                                sanitizeVideoFile(vf);
+                            }
+                        } catch (Throwable ignored) {}
+                    }
+
+                    cleaned.add(item);
                 }
                 if (modified) {
                     fz.set(post, cleaned);
                 }
             }
+        } catch (Throwable ignored) {}
+    }
+
+    public static void sanitizeVideoFile(Object vf) {
+        if (vf == null) return;
+        try {
+            // a0: InstreamAd
+            try {
+                Field fa0 = vf.getClass().getDeclaredField("a0");
+                fa0.setAccessible(true);
+                fa0.set(vf, null);
+            } catch (Throwable ignored) {}
+
+            // c0: VideoAdInfo
+            try {
+                Field fc0 = vf.getClass().getDeclaredField("c0");
+                fc0.setAccessible(true);
+                fc0.set(vf, null);
+            } catch (Throwable ignored) {}
+
+            // d0: OrdAdInfo
+            try {
+                Field fd0 = vf.getClass().getDeclaredField("d0");
+                fd0.setAccessible(true);
+                fd0.set(vf, null);
+            } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
     }
 

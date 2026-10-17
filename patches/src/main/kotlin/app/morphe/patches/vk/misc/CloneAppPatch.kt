@@ -17,6 +17,7 @@ val cloneAppPatch = resourcePatch(
     default = true
 ) {
     compatibleWith(COMPATIBILITY_VK)
+    dependsOn(nativePatch)
 
     packageNameOption = stringOption(
         key = "packageName",
@@ -227,6 +228,26 @@ val cloneAppPatch = resourcePatch(
                 }
             } catch (ignored: Throwable) {
             }
+        }
+
+        // Inject custom Zen launcher icons into the cloned APK
+        try {
+            val cl = Thread.currentThread().contextClassLoader ?: object {}.javaClass.classLoader
+            val densities = listOf("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi")
+            val iconNames = listOf("ic_launcher_background.png", "ic_launcher_foreground.png", "ic_launcher_round.png", "mp_launcher.png")
+            for (d in densities) {
+                for (name in iconNames) {
+                    val relPath = "res/mipmap-$d-v4/$name"
+                    val resStream = cl?.getResourceAsStream("zen_icons/$relPath")
+                        ?: cl?.getResourceAsStream("/zen_icons/$relPath")
+                    if (resStream != null) {
+                        val target = this[relPath]
+                        target.parentFile?.mkdirs()
+                        target.writeBytes(resStream.use { it.readBytes() })
+                    }
+                }
+            }
+        } catch (ignored: Throwable) {
         }
     }
 }

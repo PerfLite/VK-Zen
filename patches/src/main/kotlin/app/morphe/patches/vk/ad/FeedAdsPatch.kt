@@ -285,7 +285,7 @@ val feedAdsPatch = bytecodePatch(
             )
         }
 
-        // Modern MVI newsfeed: PostDisplayItemsBuilder.f suppresses ad item dispatch
+        // Modern MVI newsfeed: PostDisplayItemsBuilder.f suppresses ad item dispatch and sanitizes attachments
         PostDisplayItemsBuilderFFingerprint.method.apply {
             addInstructions(
                 0,
@@ -295,6 +295,7 @@ val feedAdsPatch = bytecodePatch(
                     if-eqz v0, :cond_not_ad
                     return-void
                     :cond_not_ad
+                    invoke-static/range { p1 .. p1 }, $EXTENSION_CLASS->sanitizePost(Ljava/lang/Object;)V
                 """
             )
         }

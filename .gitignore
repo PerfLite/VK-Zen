@@ -34,6 +34,7 @@ install_on_phone/
 findcls/
 icon_gen/
 reports/
+scratch/
 
 # Scratch & helper scripts
 *.py
