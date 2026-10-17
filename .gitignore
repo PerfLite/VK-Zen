@@ -44,3 +44,6 @@ manifest_*
 # Agent rules
 AGENTS.md
 AGENTS.MD
+
+# Generated lists
+patches-list.json
