@@ -5,13 +5,10 @@ name: Release build
 # dedicated "vk-base" release (see README note in this file's setup section).
 
 on:
-  push:
-    tags:
-      - 'v[0-9]*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to (re)build and publish, e.g. v1.0.4'
+        description: 'Existing tag to (re)build and publish, e.g. v1.0.0'
         required: true
         type: string
 
