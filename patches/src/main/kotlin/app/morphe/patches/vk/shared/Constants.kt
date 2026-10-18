@@ -16,7 +16,7 @@ object Constants {
             AppTarget(
                 version = "8.195",
                 minSdk = 26,
-                isExperimental = true
+                isExperimental = false
             )
         )
     )
