@@ -2,13 +2,18 @@
 
 > Модификация официального клиента **ВКонтакте** для Android на базе **[Morphe Patcher](https://morphe.software/)**, ориентированная на комфорт, приватность и свободу от рекламы.
 
-[![Release](https://img.shields.io/github/v/release/PerfLite/VK-Zen?color=blue&label=Скачать%20APK)](https://github.com/PerfLite/VK-Zen/releases)
+[![Patches](https://img.shields.io/badge/Patches_Vk-v1.0.0-blue.svg)](https://github.com/PerfLite/VK-Zen/releases)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://android.com)
 [![License](https://img.shields.io/badge/License-GPL%20v3-orange.svg)](LICENSE)
 
 ---
 
 ## ✨ Основные возможности
+
+### 🎬 VK Видео
+- **Предпочтительное качество:** выбор желаемого разрешения по умолчанию (Авто, 1080p Full HD, 720p HD, 480p, 360p) прямо в настройках VK Zen.
+- **Блокировка рекламы в плеере:** полное отключение вставок (in-stream preroll, midroll, postroll) при просмотре видео и фильмов.
+- **Чистый просмотр:** скрытие рекламных карточек и навязчивых предложений установки отдельного приложения VK Видео.
 
 ### 🚫 Блокировка рекламы и спама
 - **Лента новостей:** полное вырезание рекламных и спонсированных постов (`marked_as_ads`, `author_ad`, промо-блоки) без ложных срабатываний и без пропадания обычных постов.
@@ -33,12 +38,17 @@
 
 ---
 
-## 📥 Установка
+## 📥 Установка через Morphe Manager
 
-1. Перейдите в раздел [**Releases**](https://github.com/PerfLite/VK-Zen/releases).
-2. Скачайте последнюю версию `VK-Zen-vX.X.X.apk`.
-3. Установите APK на ваш Android-смартфон (разрешив установку из неизвестных источников).
-4. Войдите в свой аккаунт VK.
+1. Установите **[Morphe Manager](https://github.com/MorpheApp/morphe-manager/releases)** на ваш смартфон.
+2. Откройте **Morphe Manager** и перейдите во вкладку **Источники патчей**.
+3. Нажмите кнопку **+** (Добавить источник), выберите **Удалённый** и укажите ссылку на репозиторий:
+   ```
+   https://github.com/PerfLite/VK-Zen
+   ```
+4. Менеджер автоматически загрузит пакет **Patches Vk** со всеми патчами и иконкой.
+5. Скачайте официальный APK **ВКонтакте** (рекомендуется версия **8.195**, например с [APKMirror](https://www.apkmirror.com/apk/vkontakte-music-video-messenger/vk-music-video-messenger/)).
+6. Во вкладке **Патчер** выберите скачанный APK и нажмите **Собрать**.
 
 ---
 
