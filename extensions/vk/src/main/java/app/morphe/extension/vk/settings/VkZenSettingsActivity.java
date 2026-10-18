@@ -3,11 +3,14 @@ package app.morphe.extension.vk.settings;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -282,8 +285,8 @@ public class VkZenSettingsActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(12), dp(12), dp(12), dp(12));
-            row.setBackground(createItemSelectorDrawable());
+            row.setPadding(dp(8), dp(10), dp(8), dp(10));
+            row.setBackground(createItemSelectorDrawable(dp(8)));
             row.setClickable(true);
 
             // Slot badge
@@ -332,7 +335,7 @@ public class VkZenSettingsActivity extends Activity {
                 divider.setBackgroundColor(colorStroke);
                 LinearLayout.LayoutParams lpDiv = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, 1);
-                lpDiv.setMargins(dp(48), 0, 0, 0);
+                lpDiv.setMargins(dp(44), 0, 0, 0);
                 divider.setLayoutParams(lpDiv);
                 slotsContainer.addView(divider);
             }
@@ -345,7 +348,10 @@ public class VkZenSettingsActivity extends Activity {
 
         LinearLayout dialogRoot = new LinearLayout(this);
         dialogRoot.setOrientation(LinearLayout.VERTICAL);
-        dialogRoot.setPadding(dp(20), dp(20), dp(20), dp(16));
+        dialogRoot.setPadding(0, dp(20), 0, dp(12));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            dialogRoot.setClipToOutline(true);
+        }
 
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(colorSurface);
@@ -359,7 +365,7 @@ public class VkZenSettingsActivity extends Activity {
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setTextColor(colorTextPrimary);
-        title.setPadding(0, 0, 0, dp(14));
+        title.setPadding(dp(24), 0, dp(24), dp(14));
         dialogRoot.addView(title);
 
         // Scrollable list of options
@@ -375,8 +381,8 @@ public class VkZenSettingsActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(8), dp(12), dp(8), dp(12));
-            row.setBackground(createItemSelectorDrawable());
+            row.setPadding(dp(24), dp(12), dp(24), dp(12));
+            row.setBackground(createItemSelectorDrawable(0));
             row.setClickable(true);
 
             // Radio circle
@@ -441,7 +447,9 @@ public class VkZenSettingsActivity extends Activity {
         btnCancel.setTypeface(Typeface.DEFAULT_BOLD);
         btnCancel.setTextColor(colorAccent);
         btnCancel.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        btnCancel.setPadding(dp(12), dp(16), dp(8), dp(4));
+        btnCancel.setPadding(dp(24), dp(14), dp(24), dp(4));
+        btnCancel.setBackground(createItemSelectorDrawable(dp(8)));
+        btnCancel.setClickable(true);
         btnCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -498,8 +506,8 @@ public class VkZenSettingsActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(12), dp(12), dp(12), dp(12));
-        row.setBackground(createItemSelectorDrawable());
+        row.setPadding(dp(8), dp(10), dp(8), dp(10));
+        row.setBackground(createItemSelectorDrawable(dp(8)));
         row.setClickable(true);
 
         // Quality icon badge
@@ -569,7 +577,10 @@ public class VkZenSettingsActivity extends Activity {
 
         LinearLayout dialogRoot = new LinearLayout(this);
         dialogRoot.setOrientation(LinearLayout.VERTICAL);
-        dialogRoot.setPadding(dp(20), dp(20), dp(20), dp(16));
+        dialogRoot.setPadding(0, dp(20), 0, dp(12));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            dialogRoot.setClipToOutline(true);
+        }
 
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(colorSurface);
@@ -583,7 +594,7 @@ public class VkZenSettingsActivity extends Activity {
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setTextColor(colorTextPrimary);
-        title.setPadding(0, 0, 0, dp(14));
+        title.setPadding(dp(24), 0, dp(24), dp(14));
         dialogRoot.addView(title);
 
         ScrollView sv = new ScrollView(this);
@@ -601,8 +612,8 @@ public class VkZenSettingsActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(8), dp(12), dp(8), dp(12));
-            row.setBackground(createItemSelectorDrawable());
+            row.setPadding(dp(24), dp(12), dp(24), dp(12));
+            row.setBackground(createItemSelectorDrawable(0));
             row.setClickable(true);
 
             // Radio circle
@@ -674,7 +685,9 @@ public class VkZenSettingsActivity extends Activity {
         btnCancel.setTypeface(Typeface.DEFAULT_BOLD);
         btnCancel.setTextColor(colorAccent);
         btnCancel.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        btnCancel.setPadding(dp(12), dp(16), dp(8), dp(4));
+        btnCancel.setPadding(dp(24), dp(14), dp(24), dp(4));
+        btnCancel.setBackground(createItemSelectorDrawable(dp(8)));
+        btnCancel.setClickable(true);
         btnCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -712,11 +725,26 @@ public class VkZenSettingsActivity extends Activity {
         return card;
     }
 
-    private GradientDrawable createItemSelectorDrawable() {
-        GradientDrawable gd = new GradientDrawable();
-        gd.setCornerRadius(dp(8));
-        gd.setColor(isDark ? Color.parseColor("#2a2a2c") : Color.parseColor("#f5f6f8"));
-        return gd;
+    private Drawable createItemSelectorDrawable() {
+        return createItemSelectorDrawable(0);
+    }
+
+    private Drawable createItemSelectorDrawable(int cornerRadius) {
+        int rippleColor = isDark ? Color.parseColor("#33ffffff") : Color.parseColor("#1f000000");
+        Drawable mask;
+        if (cornerRadius > 0) {
+            GradientDrawable gd = new GradientDrawable();
+            gd.setCornerRadius(cornerRadius);
+            gd.setColor(Color.WHITE);
+            mask = gd;
+        } else {
+            mask = new ColorDrawable(Color.WHITE);
+        }
+        return new RippleDrawable(
+                ColorStateList.valueOf(rippleColor),
+                null,
+                mask
+        );
     }
 
     private int dp(float dp) {
