@@ -23,6 +23,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import app.morphe.extension.vk.layout.NavigationFilter;
+import app.morphe.extension.vk.video.VideoQualityHelper;
 
 public class VkZenSettingsActivity extends Activity {
 
@@ -35,6 +36,8 @@ public class VkZenSettingsActivity extends Activity {
     private int colorAccent;
 
     private LinearLayout slotsContainer;
+    private TextView tvVideoQualityTitle;
+    private TextView tvVideoQualitySubtitle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +88,9 @@ public class VkZenSettingsActivity extends Activity {
 
         // 5 Slots Tabbar Customization Card
         content.addView(createTabbarSlotsCard());
+
+        // Video Quality Card
+        content.addView(createVideoQualityCard());
 
         scrollView.addView(content);
         root.addView(scrollView);
@@ -470,6 +476,221 @@ public class VkZenSettingsActivity extends Activity {
             }
         }
         return slots;
+    }
+
+    private View createVideoQualityCard() {
+        LinearLayout card = createCardLayout();
+
+        TextView title = new TextView(this);
+        title.setText("Качество видео");
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setTextColor(colorTextPrimary);
+        card.addView(title);
+
+        TextView desc = new TextView(this);
+        desc.setText("Предпочтительное качество при просмотре видео и фильмов:");
+        desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        desc.setTextColor(colorTextSecondary);
+        desc.setPadding(0, dp(2), 0, dp(12));
+        card.addView(desc);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(12), dp(12), dp(12));
+        row.setBackground(createItemSelectorDrawable());
+        row.setClickable(true);
+
+        // Quality icon badge
+        TextView badge = new TextView(this);
+        badge.setText("HD");
+        badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        badge.setTypeface(Typeface.DEFAULT_BOLD);
+        badge.setTextColor(Color.WHITE);
+        badge.setGravity(Gravity.CENTER);
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setCornerRadius(dp(6));
+        badgeBg.setColor(colorAccent);
+        badge.setBackground(badgeBg);
+        LinearLayout.LayoutParams lpBadge = new LinearLayout.LayoutParams(dp(28), dp(24));
+        lpBadge.setMargins(0, 0, dp(12), 0);
+        badge.setLayoutParams(lpBadge);
+        row.addView(badge);
+
+        LinearLayout textLayout = new LinearLayout(this);
+        textLayout.setOrientation(LinearLayout.VERTICAL);
+        textLayout.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        tvVideoQualityTitle = new TextView(this);
+        tvVideoQualityTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        tvVideoQualityTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        tvVideoQualityTitle.setTextColor(colorTextPrimary);
+        textLayout.addView(tvVideoQualityTitle);
+
+        tvVideoQualitySubtitle = new TextView(this);
+        tvVideoQualitySubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tvVideoQualitySubtitle.setTextColor(colorTextSecondary);
+        textLayout.addView(tvVideoQualitySubtitle);
+
+        row.addView(textLayout);
+
+        // Arrow indicator
+        TextView arrow = new TextView(this);
+        arrow.setText("›");
+        arrow.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        arrow.setTextColor(colorTextSecondary);
+        arrow.setPadding(dp(8), 0, dp(4), 0);
+        row.addView(arrow);
+
+        refreshVideoQualityText();
+
+        row.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showVideoQualityDialog();
+            }
+        });
+
+        card.addView(row);
+        return card;
+    }
+
+    private void refreshVideoQualityText() {
+        if (tvVideoQualityTitle == null) return;
+        String current = VideoQualityHelper.getPreferredQualitySetting();
+        tvVideoQualityTitle.setText(VideoQualityHelper.getQualityTitle(current));
+        tvVideoQualitySubtitle.setText(VideoQualityHelper.getQualitySubtitle(current));
+    }
+
+    private void showVideoQualityDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        LinearLayout dialogRoot = new LinearLayout(this);
+        dialogRoot.setOrientation(LinearLayout.VERTICAL);
+        dialogRoot.setPadding(dp(20), dp(20), dp(20), dp(16));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(colorSurface);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), colorStroke);
+        dialogRoot.setBackground(bg);
+
+        // Title
+        TextView title = new TextView(this);
+        title.setText("Качество видео");
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setTextColor(colorTextPrimary);
+        title.setPadding(0, 0, 0, dp(14));
+        dialogRoot.addView(title);
+
+        ScrollView sv = new ScrollView(this);
+        LinearLayout listLayout = new LinearLayout(this);
+        listLayout.setOrientation(LinearLayout.VERTICAL);
+
+        final String currentQuality = VideoQualityHelper.getPreferredQualitySetting();
+
+        for (int i = 0; i < VideoQualityHelper.QUALITY_VALUES.length; i++) {
+            final String val = VideoQualityHelper.QUALITY_VALUES[i];
+            final String qTitle = VideoQualityHelper.QUALITY_TITLES[i];
+            final String qSub = VideoQualityHelper.QUALITY_SUBTITLES[i];
+            final boolean isSelected = val.equalsIgnoreCase(currentQuality);
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(8), dp(12), dp(8), dp(12));
+            row.setBackground(createItemSelectorDrawable());
+            row.setClickable(true);
+
+            // Radio circle
+            TextView radio = new TextView(this);
+            radio.setGravity(Gravity.CENTER);
+            GradientDrawable circleBg = new GradientDrawable();
+            circleBg.setShape(GradientDrawable.OVAL);
+            if (isSelected) {
+                circleBg.setColor(colorAccent);
+                circleBg.setStroke(dp(2), colorAccent);
+                radio.setText("✓");
+                radio.setTextColor(Color.WHITE);
+                radio.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+                radio.setTypeface(Typeface.DEFAULT_BOLD);
+            } else {
+                circleBg.setColor(Color.TRANSPARENT);
+                circleBg.setStroke(dp(2), colorTextSecondary);
+            }
+            radio.setBackground(circleBg);
+            LinearLayout.LayoutParams lpRadio = new LinearLayout.LayoutParams(dp(20), dp(20));
+            lpRadio.setMargins(0, 0, dp(14), 0);
+            radio.setLayoutParams(lpRadio);
+            row.addView(radio);
+
+            // Text column
+            LinearLayout textCol = new LinearLayout(this);
+            textCol.setOrientation(LinearLayout.VERTICAL);
+            textCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+
+            TextView itemText = new TextView(this);
+            itemText.setText(qTitle);
+            itemText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            itemText.setTextColor(isSelected ? colorAccent : colorTextPrimary);
+            if (isSelected) {
+                itemText.setTypeface(Typeface.DEFAULT_BOLD);
+            }
+            textCol.addView(itemText);
+
+            if (qSub != null && !qSub.isEmpty()) {
+                TextView subText = new TextView(this);
+                subText.setText(qSub);
+                subText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                subText.setTextColor(colorTextSecondary);
+                textCol.addView(subText);
+            }
+            row.addView(textCol);
+
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    VideoQualityHelper.savePreferredQuality(VkZenSettingsActivity.this, val);
+                    refreshVideoQualityText();
+                    dialog.dismiss();
+                    Toast.makeText(VkZenSettingsActivity.this, "Качество видео: " + qTitle, Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            listLayout.addView(row);
+        }
+
+        sv.addView(listLayout);
+        dialogRoot.addView(sv, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+
+        // Cancel button
+        TextView btnCancel = new TextView(this);
+        btnCancel.setText("ОТМЕНА");
+        btnCancel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        btnCancel.setTypeface(Typeface.DEFAULT_BOLD);
+        btnCancel.setTextColor(colorAccent);
+        btnCancel.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+        btnCancel.setPadding(dp(12), dp(16), dp(8), dp(4));
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+        dialogRoot.addView(btnCancel);
+
+        dialog.setContentView(dialogRoot);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.90f);
+            int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.55f);
+            dialog.getWindow().setLayout(width, height);
+        }
+        dialog.show();
     }
 
     private LinearLayout createCardLayout() {
