@@ -2,12 +2,12 @@ group = "app.morphe"
 
 patches {
     about {
-        name = "Morphe Patches for VK"
+        name = "Patches Vk"
         description = "Patches for VKontakte (com.vkontakte.android)"
-        source = "https://github.com/MorpheApp/morphe-patches-vk"
-        author = "MorpheApp"
+        source = "https://github.com/PerfLite/VK-Zen"
+        author = "PerfLite"
         contact = "na"
-        website = "https://morphe.software"
+        website = "https://github.com/PerfLite/VK-Zen"
         license = "GNU General Public License v3.0, with additional GPL section 7 requirements"
     }
 }

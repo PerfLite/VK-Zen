@@ -89,7 +89,7 @@ jobs:
           mkdir -p "$HOME/.m2/repository"
           tar -xzf /tmp/app-morphe-m2.tar.gz -C "$HOME/.m2/repository"
 
-      - name: Build patched APK
+      - name: Build patched APK & bundle
         working-directory: morphe-patches-vk
         run: |
           chmod +x gradlew
@@ -98,7 +98,7 @@ jobs:
           # clean checkout. (extension-library is an Android lib with no jar task.)
           ./gradlew :morphe-patches-library:patch-library:jar \
                     --no-daemon
-          ./gradlew :patches:patchVk --no-daemon --stacktrace
+          ./gradlew :patches:buildAndroid :patches:generatePatchesList :patches:patchVk --no-daemon --stacktrace
 
       - name: Publish release
         working-directory: morphe-patches-vk
@@ -111,11 +111,15 @@ jobs:
           [ -n "$NOTES" ] || NOTES="VK Zen $TAG"
           printf '%s' "$NOTES" > /tmp/notes.md
 
+          MPP_FILE=$(ls patches/build/libs/patches-*.mpp 2>/dev/null | head -1)
+          ASSETS="vk-morphe-cloned.apk"
+          [ -n "$MPP_FILE" ] && ASSETS="$ASSETS $MPP_FILE"
+
           if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" vk-morphe-cloned.apk --clobber -R "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" $ASSETS --clobber -R "$GITHUB_REPOSITORY"
             gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --notes-file /tmp/notes.md
           else
-            gh release create "$TAG" vk-morphe-cloned.apk \
+            gh release create "$TAG" $ASSETS \
               -R "$GITHUB_REPOSITORY" \
               --title "VK Zen $TAG" \
               --notes-file /tmp/notes.md
