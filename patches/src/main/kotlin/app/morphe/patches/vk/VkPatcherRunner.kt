@@ -11,7 +11,6 @@ import app.morphe.patches.vk.ad.feedAdsPatch
 import app.morphe.patches.vk.ad.videoAdsPatch
 import app.morphe.patches.vk.layout.navigationPatch
 import app.morphe.patches.vk.misc.cloneAppPatch
-import app.morphe.patches.vk.misc.friendsPatch
 import app.morphe.patches.vk.misc.nativePatch
 import app.morphe.patches.vk.misc.securityPatch
 import app.morphe.patches.vk.misc.telemetryPatch
@@ -81,8 +80,7 @@ fun main(args: Array<String>) {
             cloneAppPatch,
             securityPatch,
             musicCachePatch,
-            telemetryPatch,
-            friendsPatch
+            telemetryPatch
         )
 
         println("Executing patches...")

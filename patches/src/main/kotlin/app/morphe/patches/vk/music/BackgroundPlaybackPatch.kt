@@ -139,6 +139,25 @@ internal object ScreenStateObserverImplGFingerprint : Fingerprint(
     parameters = listOf()
 )
 
+// Block music promo subscription banners in catalog (CatalogBlockVariant.PromoBannersSlider)
+internal object PromoBannerBlockComponentPgFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "PromoBannerBlockComponent.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "pg"
+    },
+    returnType = "V"
+)
+
+internal object PromoBannerBlockComponentQgFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "PromoBannerBlockComponent.kt" &&
+            !classDef.type.contains("$") &&
+            method.name == "qg"
+    },
+    returnType = "V"
+)
+
 @Suppress("unused")
 val backgroundPlaybackPatch = bytecodePatch(
     name = "Unlock background music playback",
@@ -262,6 +281,21 @@ val backgroundPlaybackPatch = bytecodePatch(
         )
 
         ScreenStateObserverImplGFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        // Disable registration of PromoBannersSlider in music catalog MVI registry and parser
+        PromoBannerBlockComponentPgFingerprint.method.addInstructions(
+            0,
+            """
+                return-void
+            """
+        )
+
+        PromoBannerBlockComponentQgFingerprint.method.addInstructions(
             0,
             """
                 return-void
