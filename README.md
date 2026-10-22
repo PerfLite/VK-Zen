@@ -1,85 +1,118 @@
-# VK Zen 🌿
+<div align="center">
 
-> Модификация официального клиента **ВКонтакте** для Android на базе **[Morphe Patcher](https://morphe.software/)**, ориентированная на комфорт, приватность и свободу от рекламы.
+<img src="assets/banner.svg" alt="VK Zen" width="100%">
 
-[![Patches](https://img.shields.io/badge/Patches_Vk-v1.0.0-blue.svg)](https://github.com/PerfLite/VK-Zen/releases)
-[![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://android.com)
-[![License](https://img.shields.io/badge/License-GPL%20v3-orange.svg)](LICENSE)
+<p>
+  <a href="#english">🇬🇧 English</a> ·
+  <a href="#русский">🇷🇺 Русский</a>
+</p>
 
----
+<p>
+  <img src="https://img.shields.io/github/v/release/PerfLite/VK-Zen?style=flat-square" alt="release">
+  <img src="https://img.shields.io/github/license/PerfLite/VK-Zen?style=flat-square" alt="license">
+  <img src="https://img.shields.io/github/languages/top/PerfLite/VK-Zen?style=flat-square" alt="language">
+  <img src="https://img.shields.io/github/stars/PerfLite/VK-Zen?style=flat-square" alt="stars">
+  <img src="https://img.shields.io/github/downloads/PerfLite/VK-Zen/total?style=flat-square" alt="downloads">
+</p>
 
-## ✨ Основные возможности
+<p>
+  <a href="https://github.com/PerfLite/VK-Zen/releases/latest"><b>⬇️ Download / Скачать</b></a> ·
+  <a href="https://github.com/PerfLite/VK-Zen/releases">📦 All releases / Все релизы</a>
+</p>
 
-### 🎬 VK Видео
-- **Предпочтительное качество:** выбор желаемого разрешения по умолчанию (Авто, 1080p Full HD, 720p HD, 480p, 360p) прямо в настройках VK Zen.
-- **Блокировка рекламы в плеере:** полное отключение вставок (in-stream preroll, midroll, postroll) при просмотре видео и фильмов.
-- **Чистый просмотр:** скрытие рекламных карточек и навязчивых предложений установки отдельного приложения VK Видео.
+</div>
 
-### 🚫 Блокировка рекламы и спама
-- **Лента новостей:** полное вырезание рекламных и спонсированных постов (`marked_as_ads`, `author_ad`, промо-блоки) без ложных срабатываний и без пропадания обычных постов.
-- **VK Клипы:** отключение рекламы между роликами.
-- **VK Музыка:** отключение аудиорекламы между треками.
-- **Сервисы и Каталог:** скрытие рекламных баннеров, промо-виджетов и рекомендаций мини-аппов.
+## ⬇️ Download / Скачать
 
-### 🎵 VK Музыка
-- **Фоновое воспроизведение:** снятие ограничения на прослушивание музыки в фоне при заблокированном экране без подписки.
-- **Скачивание в кэш («Скачанные»):** сохранение треков во внутреннее офлайн-хранилище VK для прослушивания без интернета — без подписки, кнопки «Скачать» работают как в VK Музыка для мобильных.
-- **Чистый раздел:** скрытие навязчивых промо-баннеров и предложений оформить подписку.
+| File / Файл | Description / Описание | Link / Ссылка |
+|---|---|---|
+| `patches-1.0.0.mpp` | Morphe patch bundle · Бандл патчей Morphe | [Download](https://github.com/PerfLite/VK-Zen/releases/latest/download/patches-1.0.0.mpp) |
 
-### 🧭 Кастомизация интерфейса
-- **Настройка нижней панели (Tabbar):** свободный выбор разделов для всех 5 слотов нижнего меню.
-- **Раздел настроек «VK Zen»:** удобный экран управления модификацией прямо в интерфейсе VK.
-
-### 🛡️ Приватность и защита
-- **Анти-телеметрия:** блокировка трекеров, аналитики и метрик VK.
-- **Bypass anti-tamper:** патчинг нативных проверок сигнатуры `libvkcore.so` и самоубийственной проверки целостности в `libvkmedia.so` (из-за неё в клоне вылетали голосовые сообщения).
-- **Клон-режим:** приложение работает независимо и устанавливается параллельно с официальным клиентом VK.
-- **Кастомная иконка:** стильная минималистичная иконка приложения.
+> Older versions and changelogs: [Releases](https://github.com/PerfLite/VK-Zen/releases) ·  
+> Старые версии и список изменений: [Релизы](https://github.com/PerfLite/VK-Zen/releases)
 
 ---
 
-## 📥 Установка через Morphe Manager
+## English
 
-1. Установите **[Morphe Manager](https://github.com/MorpheApp/morphe-manager/releases)** на ваш смартфон.
-2. Откройте **Morphe Manager** и перейдите во вкладку **Источники патчей**.
-3. Нажмите кнопку **+** (Добавить источник), выберите **Удалённый** и укажите ссылку на репозиторий:
-   ```
-   https://github.com/PerfLite/VK-Zen
-   ```
-4. Менеджер автоматически загрузит пакет **Patches Vk** со всеми патчами и иконкой.
-5. Скачайте официальный APK **ВКонтакте** (рекомендуется версия **8.195**, например с [APKMirror](https://www.apkmirror.com/apk/vkontakte-music-video-messenger/vk-music-video-messenger/)).
-6. Во вкладке **Патчер** выберите скачанный APK и нажмите **Собрать**.
+Morphe patches for VK (VKontakte) Android client — ad blocking, background music playback, cache download, video quality priority and interface customization.
+
+### Features
+
+- **VK Video:** Preferred playback quality selection (Auto, 1080p Full HD, 720p HD, 480p, 360p), in-stream ad blocking (preroll, midroll, postroll), clean player interface without install prompts.
+- **Ad Blocking:** Clean feed without sponsored or promoted posts (`marked_as_ads`, `author_ad`), no ads in VK Clips, no audio ads between tracks in VK Music, hidden promotional banners in Services.
+- **VK Music:** Background playback without restrictions or subscription, offline cache download enabled, hidden promo subscription banners.
+- **Interface Customization:** Full bottom navigation bar customization (configure all 5 slots), dedicated VK Zen settings screen inside VK.
+- **Privacy & Protection:** Native anti-tamper bypass for `libvkcore.so` and `libvkmedia.so` (fixes voice messages crash in clone mode), telemetry and tracking blocking, independent clone app support.
+
+### Install
+
+Add the repository to Morphe Manager as a remote source:
+
+```
+https://github.com/PerfLite/VK-Zen
+```
+
+Or install manually:
+1. Download `patches-1.0.0.mpp` from [Releases](https://github.com/PerfLite/VK-Zen/releases/latest).
+2. Import the bundle into Morphe Manager.
+3. Select the official VK APK (version 8.195 recommended) and patch it.
+
+### Build
+
+```bash
+# Build patch bundle (.mpp)
+./gradlew :patches:bundleRelease
+
+# Or build patched APK directly
+./gradlew :patches:patchVk
+```
+
+### License
+
+GPL-3.0 — see [LICENSE](LICENSE).
+
+<p align="right"><a href="#english">↑ Back to top</a> · <a href="#русский">Русский ↓</a></p>
 
 ---
 
-## 🛠️ Сборка из исходников
+## Русский
 
-### Требования
-- JDK 17 или новее
-- Android SDK (с установленным `build-tools` и `platform-tools`)
-- Исходный APK VK (`vk.apk` версии 8.169+) помещён в корень проекта
+Патчи Morphe для Android-клиента ВКонтакте — блокировка рекламы, фоновое воспроизведение музыки, скачивание в кэш, выбор качества видео и кастомизация интерфейса.
 
-### Команды для сборки
+### Возможности
 
-1. **Сборка расширения:**
-   ```bash
-   ./gradlew :extensions:vk:assembleRelease
-   ```
+- **VK Видео:** Выбор предпочтительного качества по умолчанию (Авто, 1080p Full HD, 720p HD, 480p, 360p), блокировка рекламы в плеере (preroll, midroll, postroll), скрытие навязчивых баннеров установки отдельного приложения.
+- **Блокировка рекламы:** Полное удаление рекламных и спонсорских записей из новостной ленты (`marked_as_ads`, `author_ad`), отключение рекламы в VK Клипах и VK Музыке, скрытие промо-баннеров в Сервисах.
+- **VK Музыка:** Воспроизведение треков в фоне и при выключенном экране без подписки, сохранение треков в офлайн-кэш («Скачанные»), скрытие баннеров подписки.
+- **Кастомизация интерфейса:** Настройка всех 5 вкладок нижней панели (Tabbar), удобный раздел настроек «VK Zen» прямо в приложении.
+- **Приватность и защита:** Обход нативных проверок целостности и подписи в `libvkcore.so` и `libvkmedia.so` (голосовые сообщения работают стабильно), блокировка трекеров и телеметрии, режим независимого клона.
 
-2. **Применение патчей к APK:**
-   ```bash
-   ./gradlew :patches:patchVk
-   ```
+### Установка
 
-Готовый файл появится в корне репозитория: `vk-morphe-cloned.apk`.
+Добавьте репозиторий в Morphe Manager как удалённый источник:
 
----
+```
+https://github.com/PerfLite/VK-Zen
+```
 
-## 🔧 О движке
+Либо вручную:
+1. Скачайте `patches-1.0.0.mpp` со страницы [Релизы](https://github.com/PerfLite/VK-Zen/releases/latest).
+2. Импортируйте файл бандла в Morphe Manager.
+3. Выберите исходный APK ВКонтакте (рекомендуется версия 8.195) и запустите сборку.
 
-Проект построен на **[Morphe Patcher](https://morphe.software/)** — открытом инструменте модификации Android-приложений. Исходники и разработки движка: **[github.com/MorpheApp](https://github.com/MorpheApp)**.
+### Сборка
 
----
+```bash
+# Сборка бандла патчей (.mpp)
+./gradlew :patches:bundleRelease
 
-## 📜 Лицензия
-Проект распространяется под лицензией [GPL v3](LICENSE). Код предназначен исключительно для ознакомительных целей.
+# Или сборка патченного APK напрямую
+./gradlew :patches:patchVk
+```
+
+### Лицензия
+
+GPL-3.0 — см. [LICENSE](LICENSE).
+
+<p align="right"><a href="#русский">↑ Наверх</a> · <a href="#english">English ↑</a></p>
