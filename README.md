@@ -3,11 +3,6 @@
 <img src="assets/banner.svg" alt="VK Zen" width="100%">
 
 <p>
-  <a href="#english">🇬🇧 English</a> ·
-  <a href="#русский">🇷🇺 Русский</a>
-</p>
-
-<p>
   <img src="https://img.shields.io/github/v/release/PerfLite/VK-Zen?style=flat-square" alt="release">
   <img src="https://img.shields.io/github/license/PerfLite/VK-Zen?style=flat-square" alt="license">
   <img src="https://img.shields.io/github/languages/top/PerfLite/VK-Zen?style=flat-square" alt="language">
@@ -16,67 +11,23 @@
 </p>
 
 <p>
-  <a href="https://github.com/PerfLite/VK-Zen/releases/latest"><b>⬇️ Download / Скачать</b></a> ·
-  <a href="https://github.com/PerfLite/VK-Zen/releases">📦 All releases / Все релизы</a>
+  <a href="https://github.com/PerfLite/VK-Zen/releases/latest"><b>⬇️ Скачать</b></a> ·
+  <a href="https://github.com/PerfLite/VK-Zen/releases">📦 Все релизы</a>
 </p>
 
 </div>
 
-## ⬇️ Download / Скачать
+## ⬇️ Скачать
 
-| File / Файл | Description / Описание | Link / Ссылка |
+| Файл | Описание | Ссылка |
 |---|---|---|
-| `patches-1.0.0.mpp` | Morphe patch bundle · Бандл патчей Morphe | [Download](https://github.com/PerfLite/VK-Zen/releases/latest/download/patches-1.0.0.mpp) |
+| `patches-1.0.0.mpp` | Бандл патчей Morphe для ВКонтакте | [Скачать](https://github.com/PerfLite/VK-Zen/releases/latest/download/patches-1.0.0.mpp) |
 
-> Older versions and changelogs: [Releases](https://github.com/PerfLite/VK-Zen/releases) ·  
 > Старые версии и список изменений: [Релизы](https://github.com/PerfLite/VK-Zen/releases)
 
 ---
 
-## English
-
-Morphe patches for VK (VKontakte) Android client — ad blocking, background music playback, cache download, video quality priority and interface customization.
-
-### Features
-
-- **VK Video:** Preferred playback quality selection (Auto, 1080p Full HD, 720p HD, 480p, 360p), in-stream ad blocking (preroll, midroll, postroll), clean player interface without install prompts.
-- **Ad Blocking:** Clean feed without sponsored or promoted posts (`marked_as_ads`, `author_ad`), no ads in VK Clips, no audio ads between tracks in VK Music, hidden promotional banners in Services.
-- **VK Music:** Background playback without restrictions or subscription, offline cache download enabled, hidden promo subscription banners.
-- **Interface Customization:** Full bottom navigation bar customization (configure all 5 slots), dedicated VK Zen settings screen inside VK.
-- **Privacy & Protection:** Native anti-tamper bypass for `libvkcore.so` and `libvkmedia.so` (fixes voice messages crash in clone mode), telemetry and tracking blocking, independent clone app support.
-
-### Install
-
-Add the repository to Morphe Manager as a remote source:
-
-```
-https://github.com/PerfLite/VK-Zen
-```
-
-Or install manually:
-1. Download `patches-1.0.0.mpp` from [Releases](https://github.com/PerfLite/VK-Zen/releases/latest).
-2. Import the bundle into Morphe Manager.
-3. Select the official VK APK (version 8.195 recommended) and patch it.
-
-### Build
-
-```bash
-# Build patch bundle (.mpp)
-./gradlew :patches:bundleRelease
-
-# Or build patched APK directly
-./gradlew :patches:patchVk
-```
-
-### License
-
-GPL-3.0 — see [LICENSE](LICENSE).
-
-<p align="right"><a href="#english">↑ Back to top</a> · <a href="#русский">Русский ↓</a></p>
-
----
-
-## Русский
+## Описание
 
 Патчи Morphe для Android-клиента ВКонтакте — блокировка рекламы, фоновое воспроизведение музыки, скачивание в кэш, выбор качества видео и кастомизация интерфейса.
 
@@ -115,4 +66,4 @@ https://github.com/PerfLite/VK-Zen
 
 GPL-3.0 — см. [LICENSE](LICENSE).
 
-<p align="right"><a href="#русский">↑ Наверх</a> · <a href="#english">English ↑</a></p>
+<p align="right"><a href="#-скачать">↑ Наверх</a></p>
