@@ -4,79 +4,84 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
+import app.morphe.patches.vk.shared.references
 
 private const val EXTENSION_CLASS = "Lapp/morphe/extension/vk/ad/FeedAdsFilter;"
+
+private const val NEWS_ENTRY = "Lcom/vk/feed/core/models/news/NewsEntry;"
+private const val POST_INTERACT = "Lcom/vkontakte/android/data/PostInteract;"
+
+// Method names are obfuscated and change between VK releases, so fingerprints rely on
+// parameter types, which R8 keeps. Names also get reshuffled: in 8.200 PostDisplayItemsBuilder.w
+// builds InterestingStoriesEntry and p is an unrelated static helper.
+
+private fun postDisplayItemsBuilderMethod(firstParameter: String) = Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "PostDisplayItemsBuilder.kt" &&
+            method.parameterTypes.firstOrNull()?.toString() == firstParameter
+    },
+    returnType = "V"
+)
 
 // PostDisplayItemsBuilder.g (static helper returning ArrayList)
 internal object PostDisplayItemsBuilderGFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "g",
-    returnType = "Ljava/util/ArrayList;"
+    returnType = "Ljava/util/ArrayList;",
+    parameters = listOf("L", NEWS_ENTRY, "L", "Ljava/lang/String;", "Ljava/lang/String;")
 )
 
-// PostDisplayItemsBuilder.f (main entry point for building display items)
+// PostDisplayItemsBuilder.f (main entry point for building display items); its sibling with
+// the same shape takes PostInteract instead of the last two helpers
 internal object PostDisplayItemsBuilderFFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "f",
-    returnType = "V"
+    custom = { method, classDef ->
+        classDef.sourceFile == "PostDisplayItemsBuilder.kt" &&
+            method.parameterTypes.none { it.toString() == POST_INTERACT }
+    },
+    returnType = "V",
+    parameters = listOf(NEWS_ENTRY, "L", "Ljava/lang/String;", "Ljava/lang/String;", "Ljava/util/ArrayList;", "L", "L")
 )
 
 // PostDisplayItemsBuilder.d (Post item builder)
 internal object PostDisplayItemsBuilderDFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "d",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf(
+        "Lcom/vk/dto/newsfeed/entries/Post;",
+        NEWS_ENTRY,
+        POST_INTERACT,
+        "Ljava/lang/String;",
+        "Ljava/util/ArrayList;",
+        "L"
+    )
 )
 
 // PostDisplayItemsBuilder.e (ShitAttachment builder)
-internal object PostDisplayItemsBuilderEFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "e",
-    returnType = "V"
-)
+internal val PostDisplayItemsBuilderEFingerprint =
+    postDisplayItemsBuilderMethod("Lcom/vkontakte/android/attachments/ShitAttachment;")
 
-// PostDisplayItemsBuilder.w (RecommendedMiniApp builder)
-internal object PostDisplayItemsBuilderWFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "w",
-    returnType = "V"
-)
+// RecommendedMiniApp builder
+internal val PostDisplayItemsBuilderWFingerprint =
+    postDisplayItemsBuilderMethod("Lcom/vk/dto/newsfeed/entries/RecommendedMiniAppEntry;")
 
-// PostDisplayItemsBuilder.l (ChannelsRecommendations builder)
-internal object PostDisplayItemsBuilderLFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "l",
-    returnType = "V",
-    parameters = listOf("Lcom/vk/feed/core/models/channels/ChannelsRecommendations;", "Ljava/util/ArrayList;")
-)
+// ChannelsRecommendations builder
+internal val PostDisplayItemsBuilderLFingerprint =
+    postDisplayItemsBuilderMethod("Lcom/vk/feed/core/models/channels/ChannelsRecommendations;")
 
-// PostDisplayItemsBuilder.r (GroupsSuggestions builder)
-internal object PostDisplayItemsBuilderRFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "r",
-    returnType = "V",
-    parameters = listOf("Lcom/vk/dto/common/GroupsSuggestions;", "Ljava/util/ArrayList;")
-)
+// GroupsSuggestions builder
+internal val PostDisplayItemsBuilderRFingerprint =
+    postDisplayItemsBuilderMethod("Lcom/vk/dto/common/GroupsSuggestions;")
 
-// PostDisplayItemsBuilder.o (DzenArticlesBlock builder)
-internal object PostDisplayItemsBuilderOFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "o",
-    returnType = "V",
-    parameters = listOf("Lcom/vk/dto/newsfeed/entries/DzenArticlesBlock;", "Ljava/util/ArrayList;")
-)
+// DzenArticlesBlock builder
+internal val PostDisplayItemsBuilderOFingerprint =
+    postDisplayItemsBuilderMethod("Lcom/vk/dto/newsfeed/entries/DzenArticlesBlock;")
 
-// PostDisplayItemsBuilder.p (DzenStory builder)
-internal object PostDisplayItemsBuilderPFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "p",
-    returnType = "V"
-)
+// DzenStory builder (removed in 8.200)
+internal val PostDisplayItemsBuilderPFingerprint =
+    postDisplayItemsBuilderMethod("Lcom/vk/feed/core/models/dzen/DzenStory;")
 
 // PostDisplayItemsBuilder.a (Carousel recommendations builder)
 internal object PostDisplayItemsBuilderAFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "a",
     returnType = "V",
     parameters = listOf("Ljava/util/ArrayList;", "Lcom/vk/dto/discover/carousel/Carousel;")
 )
@@ -84,7 +89,6 @@ internal object PostDisplayItemsBuilderAFingerprint : Fingerprint(
 // PostDisplayItemsBuilder.k (Carousel recommendations builder)
 internal object PostDisplayItemsBuilderKFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemsBuilder.kt" },
-    name = "k",
     returnType = "V",
     parameters = listOf("Z", "Lcom/vk/dto/discover/carousel/Carousel;", "Ljava/util/ArrayList;")
 )
@@ -92,58 +96,20 @@ internal object PostDisplayItemsBuilderKFingerprint : Fingerprint(
 // NewsfeedItemAdsBlockDtoToNewsEntryMapper.a
 internal object NewsfeedAdsBlockMapperFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "NewsfeedItemAdsBlockDtoToNewsEntryMapper.kt" },
-    name = "a",
-    returnType = "Lcom/vk/feed/core/models/news/NewsEntry;"
+    returnType = NEWS_ENTRY
 )
 
 // NewsfeedItemPromoButtonDtoToPromoButtonMapper.a
 internal object NewsfeedPromoButtonMapperFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "NewsfeedItemPromoButtonDtoToPromoButtonMapper.kt" },
-    name = "a",
     returnType = "Lcom/vk/feed/core/models/news/PromoButton;"
 )
 
-internal object NewsfeedDataConstructorFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/dto/newsfeed/NewsfeedData;",
-    name = "<init>",
-    returnType = "V",
-    parameters = listOf("Ljava/util/List;", "Lcom/vk/dto/newsfeed/NewsfeedData\$Info;")
-)
-
+// Native ads enricher (removed in 8.200)
 internal object NewsfeedAdsEnricherFingerprint : Fingerprint(
+    custom = { _, classDef -> classDef.sourceFile == "NewsfeedEntriesNativeAdsEnricher.kt" },
     returnType = "V",
-    custom = { _, classDef -> classDef.sourceFile == "NewsfeedEntriesNativeAdsEnricher.kt" }
-)
-
-internal object NewsEntriesContainerConstructorFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/newsfeed/api/data/discover/NewsEntriesContainer;",
-    name = "<init>",
-    returnType = "V",
-    parameters = listOf(
-        "Lcom/vk/newsfeed/api/data/discover/NewsEntriesContainer\$Info;",
-        "Ljava/util/List;"
-    )
-)
-
-internal object EntriesListPresenterSetItemsFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/newsfeed/impl/presenters/EntriesListPresenter;",
-    name = "m",
-    returnType = "V",
-    parameters = listOf("Ljava/util/List;")
-)
-
-internal object EntriesListPresenterAddItemsFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/newsfeed/impl/presenters/EntriesListPresenter;",
-    name = "n",
-    returnType = "V",
-    parameters = listOf("Ljava/util/List;")
-)
-
-internal object EntriesListPresenterKFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/newsfeed/impl/presenters/EntriesListPresenter;",
-    name = "K",
-    returnType = "V",
-    parameters = listOf("Ljava/util/List;", "Z")
+    parameters = listOf("Ljava/util/ArrayList;", "L")
 )
 
 internal object GetStoriesResponseConstructorFingerprint : Fingerprint(
@@ -162,14 +128,13 @@ internal object GetStoriesResponseConstructorFingerprint : Fingerprint(
 
 internal object PostDisplayItemListExtKFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "PostDisplayItemListExt.kt" },
-    name = "k",
     returnType = "V",
     parameters = listOf(
         "Ljava/util/List;",
         "Lcom/vkontakte/android/attachments/VideoSnippetAttachment;",
-        "Lcom/vk/feed/core/models/news/NewsEntry;",
-        "Lcom/vk/feed/core/models/news/NewsEntry;",
-        "Lxsna/qfi0;"
+        NEWS_ENTRY,
+        NEWS_ENTRY,
+        "L"
     )
 )
 
@@ -202,34 +167,44 @@ internal object CatalogSectionConstructorFingerprint : Fingerprint(
     )
 )
 
+// Inserts the product attach view (sets up its blur background)
 internal object ProductAttachesHolderImplDFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "ProductAttachesHolderImpl.kt" && !classDef.type.contains("\$") },
-    name = "d",
-    returnType = "V",
-    parameters = listOf("Landroid/view/View;")
+    custom = { method, classDef ->
+        classDef.sourceFile == "ProductAttachesHolderImpl.kt" &&
+            !classDef.type.contains("\$") &&
+            method.parameterTypes.size == 1 &&
+            method.references("->setupBlurContent(")
+    },
+    returnType = "V"
 )
 
+// Binds product attach data
 internal object ProductAttachesHolderImplEFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "ProductAttachesHolderImpl.kt" && !classDef.type.contains("\$") },
-    name = "e",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("Ljava/util/List;", "L", "L")
 )
 
 internal object ProductAttachesLargeViewBinderFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "ProductAttachesLargeViewBinder.kt" && !classDef.type.contains("\$") },
-    name = "a",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("Ljava/util/List;", "L", "L", "L")
 )
 
 internal object ProductAttachesTileViewBinderFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "ProductAttachesTileViewBinder.kt" && !classDef.type.contains("\$") },
-    name = "a",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("Ljava/util/List;", "L", "L", "L")
 )
 
+// Binds the clip item; its sibling with one parameter takes VkBlurContentView
 internal object ClipProductAttachesLargeViewHolderFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "ClipProductAttachesLargeViewHolder.kt" && !classDef.type.contains("\$") },
-    name = "L6",
+    custom = { method, classDef ->
+        classDef.sourceFile == "ClipProductAttachesLargeViewHolder.kt" &&
+            !classDef.type.contains("\$") &&
+            method.parameterTypes.size == 1 &&
+            method.parameterTypes[0].toString() != "Lcom/vk/core/tool/view/vkblur/VkBlurContentView;"
+    },
     returnType = "V"
 )
 
@@ -240,22 +215,24 @@ internal object MarketAdsItemMviViewOnAttachedFingerprint : Fingerprint(
     parameters = emptyList()
 )
 
+// MVI render (Sj in 8.195, oj in 8.200)
 internal object MarketAdsItemMviViewSjFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "MarketAdsItemMviView.kt" && !classDef.type.contains("\$") },
-    name = "Sj",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("L", "Landroid/view/View;")
 )
 
+// Clip badge holders (removed in 8.200)
 internal object ShopsMoreBadgeHolderFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "ShopsMoreBadgeHolder.kt" && classDef.type.contains("holders/k;") },
-    name = "L6",
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "ShopsMoreBadgeHolder.kt" && classDef.type.contains("/badges/holders/") },
+    returnType = "V",
+    parameters = listOf("L")
 )
 
 internal object TopShopsMoreBadgeHolderFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "TopShopsMoreBadgeHolder.kt" && classDef.type.contains("holders/o;") },
-    name = "L6",
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "TopShopsMoreBadgeHolder.kt" && classDef.type.contains("/badges/holders/") },
+    returnType = "V",
+    parameters = listOf("L")
 )
 
 @Suppress("unused")
@@ -366,7 +343,7 @@ val feedAdsPatch = bytecodePatch(
         }
 
         // Modern MVI newsfeed: suppress DzenStory
-        PostDisplayItemsBuilderPFingerprint.method.apply {
+        PostDisplayItemsBuilderPFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -438,7 +415,7 @@ val feedAdsPatch = bytecodePatch(
         }
 
         // Disable native ads enricher
-        NewsfeedAdsEnricherFingerprint.method.apply {
+        NewsfeedAdsEnricherFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -551,7 +528,7 @@ val feedAdsPatch = bytecodePatch(
         }
 
         // Suppress shops more badge holder in clips
-        ShopsMoreBadgeHolderFingerprint.method.apply {
+        ShopsMoreBadgeHolderFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -561,7 +538,7 @@ val feedAdsPatch = bytecodePatch(
         }
 
         // Suppress top shops more badge holder in clips
-        TopShopsMoreBadgeHolderFingerprint.method.apply {
+        TopShopsMoreBadgeHolderFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """

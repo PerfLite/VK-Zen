@@ -4,107 +4,96 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
+import app.morphe.patches.vk.shared.references
+import com.android.tools.smali.dexlib2.iface.ClassDef
 
+// Method names are obfuscated and change between VK releases, so fingerprints rely on
+// parameter types and on what the method references.
+
+private const val POPUP_DISPLAYER = "Lcom/vk/music/notifications/restriction/MusicRestrictionPopupDisplayer;"
+private const val LAUNCH_CONTEXT = "Lcom/vk/music/common/MusicPlaybackLaunchContext;"
+private const val POPUP_TYPE = "Lcom/vk/music/notifications/restriction/MusicRestrictionPopupDisplayer\$SubscriptionPopupType;"
+
+// Static helpers on the interface, with default arguments
 internal object MusicRestrictionPopupDisplayerDFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/music/notifications/restriction/MusicRestrictionPopupDisplayer;",
-    name = "d"
+    definingClass = POPUP_DISPLAYER,
+    returnType = "V",
+    parameters = listOf(POPUP_DISPLAYER, "Ljava/lang/String;", LAUNCH_CONTEXT, "Ljava/lang/String;", POPUP_TYPE, "I")
 )
 
 internal object MusicRestrictionPopupDisplayerEFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/music/notifications/restriction/MusicRestrictionPopupDisplayer;",
-    name = "e"
+    definingClass = POPUP_DISPLAYER,
+    returnType = "V",
+    parameters = listOf(
+        POPUP_DISPLAYER,
+        "Landroid/content/Context;",
+        "Ljava/lang/String;",
+        LAUNCH_CONTEXT,
+        "Ljava/lang/String;",
+        POPUP_TYPE,
+        "Ljava/lang/String;",
+        "I"
+    )
 )
 
 // BaseMusicRestrictionPopupDisplayer
-internal object BaseMusicRestrictionPopupDisplayerCFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "c" &&
-            method.parameterTypes.size == 1
-    },
-    returnType = "V"
+private fun ClassDef.isBasePopupDisplayer() =
+    sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" && interfaces.contains(POPUP_DISPLAYER)
+
+private fun basePopupDisplayerMethod(vararg parameters: String) = Fingerprint(
+    custom = { _, classDef -> classDef.isBasePopupDisplayer() },
+    returnType = "V",
+    parameters = parameters.toList()
 )
 
-internal object BaseMusicRestrictionPopupDisplayerFFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "f" &&
-            method.parameterTypes.isEmpty()
-    },
-    returnType = "V"
-)
+internal val BaseMusicRestrictionPopupDisplayerCFingerprint = basePopupDisplayerMethod(LAUNCH_CONTEXT)
 
-internal object BaseMusicRestrictionPopupDisplayerGFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "g" &&
-            method.parameterTypes.size == 2
-    },
-    returnType = "V"
-)
+internal val BaseMusicRestrictionPopupDisplayerFFingerprint = basePopupDisplayerMethod()
 
+internal val BaseMusicRestrictionPopupDisplayerGFingerprint =
+    basePopupDisplayerMethod("Lcom/vk/dto/music/MusicDynamicRestriction;", "L")
+
+// Six parameters, their order changes between releases
 internal object BaseMusicRestrictionPopupDisplayerHFingerprint : Fingerprint(
     custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "h" &&
-            method.parameterTypes.size == 6
+        classDef.isBasePopupDisplayer() &&
+            method.parameterTypes.size == 6 &&
+            method.parameterTypes[0].toString() == "I"
     },
     returnType = "V"
 )
 
-internal object BaseMusicRestrictionPopupDisplayerIFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "i" &&
-            method.parameterTypes.size == 1
-    },
-    returnType = "V"
-)
+internal val BaseMusicRestrictionPopupDisplayerIFingerprint =
+    basePopupDisplayerMethod("Lcom/vk/dto/music/MusicTrack;")
 
-internal object BaseMusicRestrictionPopupDisplayerKFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "k" &&
-            method.parameterTypes.size == 4
-    },
-    returnType = "V"
-)
+internal val BaseMusicRestrictionPopupDisplayerKFingerprint =
+    basePopupDisplayerMethod("Ljava/lang/String;", LAUNCH_CONTEXT, "Ljava/lang/String;", POPUP_TYPE)
 
+// Two (String)V methods: m shows the device limit popup ("deviceName="), l is the other one
 internal object BaseMusicRestrictionPopupDisplayerLFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "l" &&
-            method.parameterTypes.size == 1
-    },
-    returnType = "V"
+    custom = { method, classDef -> classDef.isBasePopupDisplayer() && !method.references("deviceName=") },
+    returnType = "V",
+    parameters = listOf("Ljava/lang/String;")
 )
 
 internal object BaseMusicRestrictionPopupDisplayerMFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "BaseMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "m" &&
-            method.parameterTypes.size == 1
-    },
-    returnType = "V"
+    custom = { method, classDef -> classDef.isBasePopupDisplayer() && method.references("deviceName=") },
+    returnType = "V",
+    parameters = listOf("Ljava/lang/String;")
 )
 
 // VkMusicRestrictionPopupDisplayer (opens BuyMusicSubscription popup bottomsheet)
 internal object VkMusicRestrictionPopupDisplayerAFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VkMusicRestrictionPopupDisplayer.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "a" &&
-            method.parameterTypes.size == 6
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VkMusicRestrictionPopupDisplayer.kt" && !classDef.type.contains("\$") },
+    returnType = "V",
+    parameters = listOf(
+        "Landroid/content/Context;",
+        "Ljava/lang/String;",
+        LAUNCH_CONTEXT,
+        "Ljava/lang/String;",
+        POPUP_TYPE,
+        "Ljava/lang/String;"
+    )
 )
 
 internal object MusicPrefsPlayedTimeFingerprint : Fingerprint(
@@ -114,8 +103,7 @@ internal object MusicPrefsPlayedTimeFingerprint : Fingerprint(
 )
 
 internal object MusicBackgroundRestrictionStrategyFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "MusicBackgroundRestrictionStrategy.kt" },
-    name = "a",
+    custom = { _, classDef -> classDef.sourceFile == "MusicBackgroundRestrictionStrategy.kt" && !classDef.type.contains("\$") },
     returnType = "V",
     parameters = listOf()
 )
@@ -125,37 +113,47 @@ internal object ScreenStateReceiverFingerprint : Fingerprint(
     name = "onReceive"
 )
 
+// Screen-off handler: switches between PLAYING and PAUSED
 internal object ScreenStateObserverImplDFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "ScreenStateObserverImpl.kt" },
-    name = "d",
+    custom = { method, classDef ->
+        classDef.sourceFile == "ScreenStateObserverImpl.kt" &&
+            method.references("PlayState;->PLAYING:", "PlayState;->PAUSED:")
+    },
     returnType = "V",
     parameters = listOf()
 )
 
+// Pauses playback after the screen goes off
 internal object ScreenStateObserverImplGFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "ScreenStateObserverImpl.kt" },
-    name = "G",
+    custom = { method, classDef ->
+        classDef.sourceFile == "ScreenStateObserverImpl.kt" &&
+            method.references("PlayState;->h()Z", "PlayState;->PAUSED:")
+    },
     returnType = "V",
     parameters = listOf()
 )
 
-// Block music promo subscription banners in catalog (CatalogBlockVariant.PromoBannersSlider)
+// Block music promo subscription banners in catalog (CatalogBlockVariant.PromoBannersSlider):
+// pg registers the block in the MVI registry, qg registers its parser
 internal object PromoBannerBlockComponentPgFingerprint : Fingerprint(
     custom = { method, classDef ->
         classDef.sourceFile == "PromoBannerBlockComponent.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "pg"
+            !classDef.type.contains("\$") &&
+            method.references("CatalogBlockVariant;->PromoBannersSlider:", "Lkotlin/LazyThreadSafetyMode;")
     },
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("L")
 )
 
 internal object PromoBannerBlockComponentQgFingerprint : Fingerprint(
     custom = { method, classDef ->
         classDef.sourceFile == "PromoBannerBlockComponent.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "qg"
+            !classDef.type.contains("\$") &&
+            method.references("CatalogBlockVariant;->PromoBannersSlider:") &&
+            !method.references("Lkotlin/LazyThreadSafetyMode;")
     },
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("L")
 )
 
 @Suppress("unused")

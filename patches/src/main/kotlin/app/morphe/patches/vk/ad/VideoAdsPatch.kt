@@ -5,155 +5,138 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
 
-// VideoAdvertisementsRepositoryImpl (xsna.ed01)
+// Method names are obfuscated and change between VK releases, so fingerprints rely on
+// parameter and return types, which R8 keeps.
+
+// VideoAdvertisementsRepositoryImpl
 // g: initiates instream/overlay ad loading
 internal object VideoAdvertisementsRepoGFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" &&
-            method.name == "g" &&
-            method.parameterTypes.size == 5
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" },
+    returnType = "V",
+    parameters = listOf(
+        "Ljava/lang/String;",
+        "Lcom/vk/dto/common/InstreamAd;",
+        "Ljava/lang/String;",
+        "Ljava/lang/String;",
+        "J"
+    )
 )
 
 // b: sets ad section
 internal object VideoAdvertisementsRepoBFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" &&
-            method.name == "b" &&
-            method.parameterTypes.size == 2
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" },
+    returnType = "V",
+    parameters = listOf("Ljava/lang/String;", "Lcom/vk/dto/common/AdSection;")
 )
 
 // c: sets ad type
 internal object VideoAdvertisementsRepoCFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" &&
-            method.name == "c" &&
-            method.parameterTypes.size == 1
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" },
+    returnType = "V",
+    parameters = listOf("Lcom/vk/libvideo/api/ad/VideoAdvertisementsRepository\$AdType;")
 )
 
 // d: loads banner/overlay ad data
 internal object VideoAdvertisementsRepoDFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" &&
-            method.name == "d" &&
-            method.parameterTypes.size == 1
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoAdvertisementsRepositoryImpl.kt" && !classDef.type.contains("\$") },
+    returnType = "V",
+    parameters = listOf("J")
 )
 
 // VideoAdLayout (com.vk.libvideo.design.view.ad.VideoAdLayout)
 // a: binds and displays video ad overlay controls ("Реклама", redirect button, timers)
 internal object VideoAdLayoutAFingerprint : Fingerprint(
     definingClass = "Lcom/vk/libvideo/design/view/ad/VideoAdLayout;",
-    name = "a",
     returnType = "V",
-    custom = { method, _ -> method.parameterTypes.size == 6 }
+    parameters = listOf("L", "Lcom/vk/libvideo/design/view/ad/data/a;", "L", "L", "L", "Lkotlin/Lazy;")
 )
 
-// VideoFileOld (com.vk.dto.common.VideoFileOld)
-// p8: returns InstreamAd
+// VideoFileOld (com.vk.dto.common.VideoFileOld): ad getters
 internal object VideoFileOldInstreamAdFingerprint : Fingerprint(
     definingClass = "Lcom/vk/dto/common/VideoFileOld;",
-    name = "p8",
-    returnType = "Lcom/vk/dto/common/InstreamAd;"
+    returnType = "Lcom/vk/dto/common/InstreamAd;",
+    parameters = emptyList()
 )
 
-// b1: returns VideoAdInfo
 internal object VideoFileOldVideoAdInfoFingerprint : Fingerprint(
     definingClass = "Lcom/vk/dto/common/VideoFileOld;",
-    name = "b1",
-    returnType = "Lcom/vk/dto/common/VideoAdInfo;"
+    returnType = "Lcom/vk/dto/common/VideoAdInfo;",
+    parameters = emptyList()
 )
 
-// p1: returns OrdAdInfo
 internal object VideoFileOldOrdAdInfoFingerprint : Fingerprint(
     definingClass = "Lcom/vk/dto/common/VideoFileOld;",
-    name = "p1",
-    returnType = "Lcom/vk/dto/common/OrdAdInfo;"
+    returnType = "Lcom/vk/dto/common/OrdAdInfo;",
+    parameters = emptyList()
 )
 
 // VideoAttachment (com.vkontakte.android.attachments.VideoAttachment)
-// bc: returns ShitAttachment (promo snippet card under video)
+// Getter of ShitAttachment (promo snippet card under video)
 internal object VideoAttachmentBcFingerprint : Fingerprint(
     definingClass = "Lcom/vkontakte/android/attachments/VideoAttachment;",
-    name = "bc",
-    returnType = "Lcom/vkontakte/android/attachments/ShitAttachment;"
+    returnType = "Lcom/vkontakte/android/attachments/ShitAttachment;",
+    parameters = emptyList()
 )
 
-// gc: sets ShitAttachment
+// Setter of ShitAttachment
 internal object VideoAttachmentGcFingerprint : Fingerprint(
     definingClass = "Lcom/vkontakte/android/attachments/VideoAttachment;",
-    name = "gc",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("Lcom/vkontakte/android/attachments/ShitAttachment;")
 )
 
 // VideoGrowthTrapsManagerImpl (Video growth traps and superapp standalone bottomsheet / bombing popups)
 internal object VideoGrowthTrapsManagerAFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "a" &&
-            method.parameterTypes.size == 4
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" && !classDef.type.contains("\$") },
+    returnType = "V",
+    parameters = listOf(
+        "Landroid/content/Context;",
+        "Lcom/vk/video/growth/api/data/VideoGrowthVideoParams;",
+        "Z",
+        "L"
+    )
 )
 
 internal object VideoGrowthTrapsManagerBFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "b" &&
-            method.parameterTypes.size == 4
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" && !classDef.type.contains("\$") },
+    returnType = "V",
+    parameters = listOf(
+        "Landroid/content/Context;",
+        "Lcom/vk/video/growth/api/data/VideoGrowthVideoParams;",
+        "J",
+        "Lcom/vk/video/growth/api/data/VideoGrowthCommunitySource;"
+    )
 )
 
 internal object VideoGrowthTrapsManagerCFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "c" &&
-            method.parameterTypes.size == 3
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoGrowthTrapsManagerImpl.kt" && !classDef.type.contains("\$") },
+    returnType = "V",
+    parameters = listOf(
+        "Landroid/content/Context;",
+        "J",
+        "Lcom/vk/video/growth/api/data/VideoStandaloneUploadSource;"
+    )
 )
 
 // VideoGrowthTrapLauncherImpl
 internal object VideoGrowthTrapLauncherAFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoGrowthTrapLauncherImpl.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "a" &&
-            method.parameterTypes.size == 2
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "VideoGrowthTrapLauncherImpl.kt" && !classDef.type.contains("\$") },
+    returnType = "V",
+    parameters = listOf("Landroid/content/Context;", "Lcom/vk/video/growth/api/VideoGrowthTrapArguments;")
 )
 
 // VideoGrowthBombingControllerImpl
 internal object VideoGrowthBombingControllerAFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoGrowthBombingControllerImpl.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "a" &&
-            method.parameterTypes.isEmpty()
-    },
-    returnType = "Z"
+    custom = { _, classDef -> classDef.sourceFile == "VideoGrowthBombingControllerImpl.kt" && !classDef.type.contains("\$") },
+    returnType = "Z",
+    parameters = emptyList()
 )
 
 // VideoGrowthListingControllerImpl
 internal object VideoGrowthListingControllerBFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "VideoGrowthListingControllerImpl.kt" &&
-            !classDef.type.contains("$") &&
-            method.name == "b" &&
-            method.parameterTypes.size == 1
-    },
-    returnType = "Z"
+    custom = { _, classDef -> classDef.sourceFile == "VideoGrowthListingControllerImpl.kt" && !classDef.type.contains("\$") },
+    returnType = "Z",
+    parameters = listOf("Z")
 )
 
 @Suppress("unused")
