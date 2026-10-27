@@ -4,6 +4,7 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
+import app.morphe.patches.vk.shared.references
 
 internal object AuthBridgeIllegalAccessFingerprint : Fingerprint(
     returnType = "V",
@@ -24,28 +25,33 @@ internal object HijackingAppsTaskFingerprint : Fingerprint(
     parameters = emptyList()
 )
 
+// Companion show(Context, ...): the order of the other three parameters changes between releases
 internal object HijackingAppsNotificationShowFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "HijackingAppsNotification.kt" && classDef.type.endsWith("\$a;") },
-    name = "a",
+    custom = { method, classDef ->
+        classDef.sourceFile == "HijackingAppsNotification.kt" &&
+            classDef.type.endsWith("\$a;") &&
+            method.parameterTypes.size == 4 &&
+            method.parameterTypes[0].toString() == "Landroid/content/Context;"
+    },
     returnType = "V"
 )
 
+// Builds the notification from NotificationCompat.Builder
 internal object HijackingAppsNotificationOFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "HijackingAppsNotification.kt" && !classDef.type.contains("$") },
-    name = "o",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("L")
 )
 
+// isVpn(): the only no-arg boolean getter that delegates to hasTransport(int) (TRANSPORT_VPN)
 internal object DeviceStateIsVpnFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "DeviceState.kt" },
-    name = "i",
+    custom = { method, classDef -> classDef.sourceFile == "DeviceState.kt" && method.references("(I)Z") },
     returnType = "Z",
     parameters = emptyList()
 )
 
 internal object MusicVpnSnackbarManagerShowFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "MusicVpnSnackbarManager.kt" },
-    name = "a",
     returnType = "V",
     parameters = listOf("Landroid/content/Context;", "Z")
 )

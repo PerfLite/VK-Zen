@@ -7,16 +7,12 @@ import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
 
 private const val EXTENSION_CLASS = "Lapp/morphe/extension/vk/video/VideoQualityHelper;"
 
-// OneVideoPlayerQualityExt (Lxsna/soe0;)
+// OneVideoPlayerQualityExt
 // c: sets player quality, receives (OneVideoPlayer, int)
 internal object OneVideoPlayerQualityExtCFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "OneVideoPlayerQualityExt.kt" &&
-            method.name == "c" &&
-            method.parameterTypes.size == 2 &&
-            method.parameterTypes[1] == "I"
-    },
-    returnType = "V"
+    custom = { _, classDef -> classDef.sourceFile == "OneVideoPlayerQualityExt.kt" },
+    returnType = "V",
+    parameters = listOf("Lone/video/player/OneVideoPlayer;", "I")
 )
 
 @Suppress("unused")

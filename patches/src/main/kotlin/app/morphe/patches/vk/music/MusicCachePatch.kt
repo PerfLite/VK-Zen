@@ -4,9 +4,11 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
+import app.morphe.patches.vk.shared.references
 
 /**
- * MusicSubscriptionProviderImpl (xsna.mva0) — c() is hasMusicSubscription().
+ * MusicSubscriptionProviderImpl — c() is hasMusicSubscription() (the name is obfuscated,
+ * so it is found by the AUDIO_SUBSCRIPTION_STORAGE toggle it checks).
  * Every native download entry point (the player download icon via the offline
  * manager, and the "download" action via the interactor / bottom-sheet model)
  * gates on this single boolean before delegating to the real worker
@@ -15,8 +17,11 @@ import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
  * VK's encrypted offline cache and appear in the "Downloaded" section.
  */
 internal object MusicSubscriptionProviderHasSubscriptionFingerprint : Fingerprint(
-    definingClass = "Lxsna/mva0;",
-    name = "c",
+    custom = { method, classDef ->
+        classDef.sourceFile == "MusicSubscriptionProviderImpl.kt" &&
+            !classDef.type.contains("\$") &&
+            method.references("MusicFeatures;->AUDIO_SUBSCRIPTION_STORAGE:")
+    },
     returnType = "Z",
     parameters = emptyList()
 )

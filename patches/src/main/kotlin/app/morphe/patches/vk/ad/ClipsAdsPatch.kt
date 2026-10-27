@@ -7,10 +7,11 @@ import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
 
 private const val EXTENSION_CLASS = "Lapp/morphe/extension/vk/clips/ClipsAdsFilter;"
 
+// Feed init result handler (i in 8.195 and 8.200); the name is obfuscated, the shape is not
 internal object ClipsFeedInitActionDelegateFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "FeedInitActionDelegate.kt" && !classDef.type.contains("$") },
-    name = "i",
-    returnType = "V"
+    returnType = "V",
+    parameters = listOf("L", "Ljava/util/List;", "L", "L", "L", "Ljava/lang/String;", "L", "Ljava/util/List;")
 )
 
 internal object AsyncListDifferSubmitListFingerprint : Fingerprint(

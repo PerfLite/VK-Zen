@@ -17,9 +17,9 @@ internal object TabbarStateConstructorFingerprint : Fingerprint(
     )
 )
 
+// Items getter: the name is obfuscated and changes between releases (c in 8.195, d in 8.200)
 internal object TabbarStateGetItemsFingerprint : Fingerprint(
     definingClass = "Lcom/vk/tabbar/core/api/domain/TabbarState;",
-    name = "c",
     returnType = "Ljava/util/List;",
     parameters = emptyList()
 )
@@ -34,7 +34,6 @@ internal object MainActivityOnResumeFingerprint : Fingerprint(
 // Intercept TabbarSettingsRouterImpl.c(Context, String)
 internal object TabbarSettingsRouterImplCFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "TabbarSettingsRouterImpl.kt" },
-    name = "c",
     returnType = "V",
     parameters = listOf(
         "Landroid/content/Context;",
@@ -45,7 +44,6 @@ internal object TabbarSettingsRouterImplCFingerprint : Fingerprint(
 // Intercept TabbarSettingsRouterImpl.a(NavigationDelegateActivity, int, TabbarState)
 internal object TabbarSettingsRouterImplAFingerprint : Fingerprint(
     custom = { _, classDef -> classDef.sourceFile == "TabbarSettingsRouterImpl.kt" },
-    name = "a",
     returnType = "V",
     parameters = listOf(
         "Lcom/vk/navigation/NavigationDelegateActivity;",
@@ -54,22 +52,18 @@ internal object TabbarSettingsRouterImplAFingerprint : Fingerprint(
     )
 )
 
-// Intercept TabbarSettingsFragment.Sj (onViewCreated)
+// Intercept TabbarSettingsFragment onViewCreated: the name and first parameter type are obfuscated
+// (Sj(Lxsna/kab0;, View) in 8.195, oj(Lxsna/s6b0;, View) in 8.200)
 internal object TabbarSettingsFragmentFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "TabbarSettingsFragment.kt" },
-    name = "Sj",
+    custom = { _, classDef -> classDef.sourceFile == "TabbarSettingsFragment.kt" && !classDef.type.contains("\$") },
     returnType = "V",
-    parameters = listOf(
-        "Lxsna/kab0;",
-        "Landroid/view/View;"
-    )
+    parameters = listOf("L", "Landroid/view/View;")
 )
 
 private const val SUPERAPP_FILTER_CLASS = "Lapp/morphe/extension/vk/layout/SuperAppFilter;"
 
 internal object SuperAppFragmentSubmitFingerprint : Fingerprint(
     definingClass = "Lcom/vk/superapp/ui/SuperAppFragment;",
-    name = "Sq",
     returnType = "V",
     parameters = listOf("Lcom/vk/superapp/dto/ListData;")
 )
