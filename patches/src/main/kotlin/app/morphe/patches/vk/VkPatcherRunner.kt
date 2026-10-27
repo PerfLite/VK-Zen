@@ -10,7 +10,6 @@ import app.morphe.patches.vk.ad.clipsAdsPatch
 import app.morphe.patches.vk.ad.feedAdsPatch
 import app.morphe.patches.vk.ad.videoAdsPatch
 import app.morphe.patches.vk.video.videoQualityPatch
-import app.morphe.patches.vk.video.videoMirrorPatch
 import app.morphe.patches.vk.layout.navigationPatch
 import app.morphe.patches.vk.misc.cloneAppPatch
 import app.morphe.patches.vk.misc.nativePatch
@@ -96,7 +95,6 @@ fun main(args: Array<String>) {
             clipsAdsPatch,
             videoAdsPatch,
             videoQualityPatch,
-            videoMirrorPatch,
             navigationPatch,
             backgroundPlaybackPatch,
             audioAdsPatch,
