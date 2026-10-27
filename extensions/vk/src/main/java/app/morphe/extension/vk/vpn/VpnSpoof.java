@@ -39,6 +39,7 @@ public final class VpnSpoof {
      * Intercepts ConnectivityManager.getNetworkInfo(int).
      * Always returns null for TYPE_VPN (17) to hide active VPN network info.
      */
+    @android.annotation.SuppressLint("MissingPermission")
     public static NetworkInfo getNetworkInfo(ConnectivityManager cm, int networkType) {
         if (networkType == TYPE_VPN) {
             return null;
