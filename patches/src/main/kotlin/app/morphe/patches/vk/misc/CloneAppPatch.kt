@@ -43,10 +43,30 @@ val cloneAppPatch = resourcePatch(
         document("AndroidManifest.xml").use { document ->
             document.documentElement.setAttribute("package", newPackageName)
 
+            // Strip split APK enforcement attributes so standalone installation doesn't fail with INSTALL_FAILED_MISSING_SPLIT
+            document.documentElement.removeAttribute("android:requiredSplitTypes")
+            document.documentElement.removeAttribute("android:splitTypes")
+            document.documentElement.removeAttribute("android:isSplitRequired")
+
+            // Remove split-related metadata
+            val metaDataList = document.getElementsByTagName("meta-data")
+            val splitMetaToRemove = mutableListOf<Element>()
+            for (i in 0 until metaDataList.length) {
+                val meta = metaDataList.item(i) as? Element ?: continue
+                val name = meta.getAttribute("android:name")
+                if (name == "com.android.vending.splits.required" || name == "com.android.vending.splits") {
+                    splitMetaToRemove.add(meta)
+                }
+            }
+            for (meta in splitMetaToRemove) {
+                meta.parentNode?.removeChild(meta)
+            }
+
             // Update application and activity labels so clone is easily distinguished from official VK
             val applications = document.getElementsByTagName("application")
             for (i in 0 until applications.length) {
                 val app = applications.item(i) as? Element ?: continue
+                app.removeAttribute("android:isSplitRequired")
                 app.setAttribute("android:label", "VK Zen")
 
                 // Register VkZenSettingsActivity
