@@ -10,11 +10,14 @@ import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.lang.reflect.Constructor;
@@ -30,94 +33,189 @@ public class VideoMirrorHelper {
     private static final int COLOR_NORMAL = Color.WHITE;
 
     /**
-     * Injects the horizontal flip / mirror button into the player controls container (VideoShortActions).
+     * Injects the horizontal flip / mirror button into the player controls container.
+     * Supports VideoToolbarView, VideoButtonsView, and VideoShortActions.
      */
-    public static void injectMirrorButton(ViewGroup container) {
+    public static void injectMirrorButton(final ViewGroup container) {
         if (container == null) return;
         try {
-            // Prevent duplicate buttons
-            if (container.findViewWithTag(TAG_MIRROR_BUTTON) != null) {
-                return;
-            }
+            // Attempt immediate injection
+            injectMirrorButtonInternal(container);
 
-            final Context context = container.getContext();
-            final ImageView mirrorButton = new ImageView(context);
-            mirrorButton.setTag(TAG_MIRROR_BUTTON);
-            mirrorButton.setContentDescription("Отзеркалить видео");
-
-            int btnSize = dp(context, 44);
-            int iconPadding = dp(context, 10);
-            mirrorButton.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-
-            // Click ripple effect
-            try {
-                TypedValue outValue = new TypedValue();
-                if (context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)) {
-                    mirrorButton.setBackgroundResource(outValue.resourceId);
-                }
-            } catch (Throwable ignored) {}
-
-            final MirrorIconDrawable iconDrawable = new MirrorIconDrawable(context);
-            mirrorButton.setImageDrawable(iconDrawable);
-
-            // Configure layout params for ConstraintLayout
-            ViewGroup.LayoutParams lp = createConstraintLayoutParams(container, context, btnSize);
-            mirrorButton.setLayoutParams(lp);
-
-            mirrorButton.setOnClickListener(new View.OnClickListener() {
+            // Also post to UI thread in case child views (action buttons) are populated/inflated asynchronously
+            container.post(new Runnable() {
                 @Override
-                public void onClick(View v) {
+                public void run() {
                     try {
-                        View surface = findVideoSurface(container);
-                        if (surface != null) {
-                            float curScale = surface.getScaleX();
-                            boolean activateMirror = (curScale > 0f);
-                            float newScale = activateMirror ? -1.0f : 1.0f;
-                            surface.setScaleX(newScale);
-
-                            // Update button icon tint
-                            mirrorButton.setColorFilter(activateMirror ? COLOR_ACTIVE : COLOR_NORMAL);
-                            Toast.makeText(
-                                context,
-                                activateMirror ? "Отзеркаливание включено ↔" : "Отзеркаливание выключено",
-                                Toast.LENGTH_SHORT
-                            ).show();
-                        } else {
-                            Toast.makeText(context, "Видеопоток не найден", Toast.LENGTH_SHORT).show();
-                        }
+                        injectMirrorButtonInternal(container);
                     } catch (Throwable t) {
-                        Log.e(TAG, "Error toggling video mirror", t);
+                        Log.e(TAG, "post inject error", t);
                     }
                 }
             });
-
-            container.addView(mirrorButton);
-            Log.d(TAG, "Successfully injected video mirror button");
         } catch (Throwable t) {
-            Log.e(TAG, "Failed to inject video mirror button", t);
+            Log.e(TAG, "injectMirrorButton error", t);
         }
     }
 
-    private static ViewGroup.LayoutParams createConstraintLayoutParams(ViewGroup container, Context context, int btnSize) {
+    private static synchronized void injectMirrorButtonInternal(final ViewGroup container) {
+        if (container == null) return;
+
+        // Check if button is already injected in this container or its parent hierarchy
+        if (container.findViewWithTag(TAG_MIRROR_BUTTON) != null) {
+            return;
+        }
+
+        final Context context = container.getContext();
+        final ImageView mirrorButton = new ImageView(context);
+        mirrorButton.setTag(TAG_MIRROR_BUTTON);
+        mirrorButton.setContentDescription("Отзеркалить видео");
+
+        int btnSize = dp(context, 44);
+        int iconPadding = dp(context, 10);
+        mirrorButton.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
+
+        // Click ripple effect
+        try {
+            TypedValue outValue = new TypedValue();
+            if (context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)) {
+                mirrorButton.setBackgroundResource(outValue.resourceId);
+            }
+        } catch (Throwable ignored) {}
+
+        final MirrorIconDrawable iconDrawable = new MirrorIconDrawable(context);
+        mirrorButton.setImageDrawable(iconDrawable);
+
+        mirrorButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    View surface = findVideoSurface(container);
+                    if (surface != null) {
+                        float curScale = surface.getScaleX();
+                        boolean activateMirror = (curScale > 0f);
+                        float newScale = activateMirror ? -1.0f : 1.0f;
+                        surface.setScaleX(newScale);
+
+                        mirrorButton.setColorFilter(activateMirror ? COLOR_ACTIVE : COLOR_NORMAL);
+                        Toast.makeText(
+                            context,
+                            activateMirror ? "Отзеркаливание включено ↔" : "Отзеркаливание выключено",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                    } else {
+                        Toast.makeText(context, "Видеопоток не найден", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Throwable t) {
+                    Log.e(TAG, "Error toggling video mirror", t);
+                }
+            }
+        });
+
+        // Search for existing action buttons (more, cast, settings, rate, enter_pip)
+        View anchorView = findAnchorView(container, context);
+
+        if (anchorView != null && anchorView.getParent() instanceof ViewGroup) {
+            ViewGroup anchorParent = (ViewGroup) anchorView.getParent();
+
+            if (anchorParent instanceof LinearLayout) {
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(btnSize, btnSize);
+                lp.gravity = Gravity.CENTER_VERTICAL;
+                int insertIdx = anchorParent.indexOfChild(anchorView);
+                anchorParent.addView(mirrorButton, insertIdx, lp);
+                Log.d(TAG, "Injected mirror button into LinearLayout next to " + anchorView);
+                return;
+            }
+
+            if (anchorParent.getClass().getName().contains("ConstraintLayout")) {
+                ViewGroup.LayoutParams lp = createConstraintLayoutParams(anchorParent, context, btnSize, anchorView);
+                anchorParent.addView(mirrorButton, lp);
+                Log.d(TAG, "Injected mirror button into ConstraintLayout next to " + anchorView);
+                return;
+            }
+
+            if (anchorParent instanceof RelativeLayout) {
+                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(btnSize, btnSize);
+                lp.addRule(RelativeLayout.START_OF, anchorView.getId());
+                lp.addRule(RelativeLayout.ALIGN_TOP, anchorView.getId());
+                anchorParent.addView(mirrorButton, lp);
+                Log.d(TAG, "Injected mirror button into RelativeLayout next to " + anchorView);
+                return;
+            }
+        }
+
+        // Direct container fallback
+        if (container instanceof LinearLayout) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(btnSize, btnSize);
+            lp.gravity = Gravity.CENTER_VERTICAL;
+            container.addView(mirrorButton, lp);
+            Log.d(TAG, "Injected mirror button as direct child of LinearLayout");
+            return;
+        }
+
+        if (container.getClass().getName().contains("ConstraintLayout")) {
+            ViewGroup.LayoutParams lp = createConstraintLayoutParams(container, context, btnSize, null);
+            container.addView(mirrorButton, lp);
+            Log.d(TAG, "Injected mirror button as direct child of ConstraintLayout");
+            return;
+        }
+
+        if (container instanceof RelativeLayout) {
+            RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(btnSize, btnSize);
+            lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+            lp.addRule(RelativeLayout.ALIGN_PARENT_END);
+            lp.topMargin = dp(context, 8);
+            lp.rightMargin = dp(context, 52);
+            container.addView(mirrorButton, lp);
+            Log.d(TAG, "Injected mirror button as direct child of RelativeLayout");
+            return;
+        }
+
+        // Generic fallback
+        ViewGroup.MarginLayoutParams mlp = new ViewGroup.MarginLayoutParams(btnSize, btnSize);
+        mlp.rightMargin = dp(context, 52);
+        container.addView(mirrorButton, mlp);
+        Log.d(TAG, "Injected mirror button using generic MarginLayoutParams");
+    }
+
+    private static View findAnchorView(ViewGroup container, Context context) {
+        Queue<View> queue = new LinkedList<>();
+        queue.add(container);
+
+        View candidate = null;
+
+        while (!queue.isEmpty()) {
+            View current = queue.poll();
+            if (current == null) continue;
+
+            if (current != container && current.getId() != View.NO_ID) {
+                try {
+                    String entryName = context.getResources().getResourceEntryName(current.getId());
+                    if ("more".equalsIgnoreCase(entryName) || "settings".equalsIgnoreCase(entryName)) {
+                        return current;
+                    }
+                    if ("cast".equalsIgnoreCase(entryName) || "enter_pip".equalsIgnoreCase(entryName) || "cancel".equalsIgnoreCase(entryName)) {
+                        if (candidate == null) candidate = current;
+                    }
+                } catch (Throwable ignored) {}
+            }
+
+            if (current instanceof ViewGroup) {
+                ViewGroup vg = (ViewGroup) current;
+                for (int i = 0; i < vg.getChildCount(); i++) {
+                    queue.add(vg.getChildAt(i));
+                }
+            }
+        }
+
+        return candidate;
+    }
+
+    private static ViewGroup.LayoutParams createConstraintLayoutParams(ViewGroup container, Context context, int btnSize, View anchorView) {
         try {
             Class<?> lpClass = Class.forName("androidx.constraintlayout.widget.ConstraintLayout$LayoutParams");
             Constructor<?> ctor = lpClass.getConstructor(int.class, int.class);
             Object lp = ctor.newInstance(btnSize, btnSize);
-
-            // Search for enter_pip view in container to anchor to its left
-            View anchorView = null;
-            for (int i = 0; i < container.getChildCount(); i++) {
-                View child = container.getChildAt(i);
-                if (child != null && child.getId() != View.NO_ID) {
-                    try {
-                        String entryName = context.getResources().getResourceEntryName(child.getId());
-                        if ("enter_pip".equalsIgnoreCase(entryName) || "more".equalsIgnoreCase(entryName)) {
-                            anchorView = child;
-                            if ("enter_pip".equalsIgnoreCase(entryName)) break;
-                        }
-                    } catch (Throwable ignored) {}
-                }
-            }
 
             Field topToTop = lpClass.getField("topToTop");
             Field bottomToBottom = lpClass.getField("bottomToBottom");
@@ -126,7 +224,7 @@ public class VideoMirrorHelper {
             Field rightMargin = lpClass.getField("rightMargin");
             Field leftMargin = lpClass.getField("leftMargin");
 
-            if (anchorView != null) {
+            if (anchorView != null && anchorView.getId() != View.NO_ID) {
                 endToStart.setInt(lp, anchorView.getId());
                 topToTop.setInt(lp, anchorView.getId());
                 bottomToBottom.setInt(lp, anchorView.getId());
@@ -176,10 +274,18 @@ public class VideoMirrorHelper {
                 if (candidate == null) candidate = current;
             }
 
-            // Or views named Surface / VideoView / AspectRatio
+            // Check class name / ID for VideoView / AspectRatioFrameLayout / Surface
             String className = current.getClass().getName();
             if (className.contains("Texture") || className.contains("SurfaceView") || className.contains("AspectRatioFrameLayout")) {
                 if (candidate == null) candidate = current;
+            }
+            if (current.getId() != View.NO_ID) {
+                try {
+                    String entry = view.getContext().getResources().getResourceEntryName(current.getId());
+                    if ("video_view".equalsIgnoreCase(entry)) {
+                        if (candidate == null) candidate = current;
+                    }
+                } catch (Throwable ignored) {}
             }
 
             if (current instanceof ViewGroup) {
@@ -229,33 +335,36 @@ public class VideoMirrorHelper {
 
         @Override
         public void draw(Canvas canvas) {
-            float width = getBounds().width();
-            float height = getBounds().height();
-            if (width <= 0 || height <= 0) return;
+            android.graphics.Rect bounds = getBounds();
+            int w = bounds.width();
+            int h = bounds.height();
+            if (w <= 0 || h <= 0) return;
 
-            float padX = width * 0.15f;
-            float left = padX;
-            float right = width - padX;
-            float arrowHeadSize = width * 0.22f;
+            float padX = w * 0.22f;
+            float left = bounds.left + padX;
+            float right = bounds.right - padX;
 
-            float yTop = height * 0.36f;
-            float yBottom = height * 0.64f;
+            float arrowLen = (right - left) * 0.28f;
+            float arrowSpread = h * 0.14f;
 
-            // Top arrow: pointing right ──►
+            float topY = bounds.top + h * 0.38f;
+            float bottomY = bounds.top + h * 0.62f;
+
+            // Top arrow: pointing right ->
             pathTop.reset();
-            pathTop.moveTo(left, yTop);
-            pathTop.lineTo(right, yTop);
-            pathTop.lineTo(right - arrowHeadSize, yTop - arrowHeadSize * 0.7f);
-            pathTop.moveTo(right, yTop);
-            pathTop.lineTo(right - arrowHeadSize, yTop + arrowHeadSize * 0.7f);
+            pathTop.moveTo(left, topY);
+            pathTop.lineTo(right, topY);
+            pathTop.moveTo(right - arrowLen, topY - arrowSpread);
+            pathTop.lineTo(right, topY);
+            pathTop.lineTo(right - arrowLen, topY + arrowSpread);
 
-            // Bottom arrow: pointing left ◄──
+            // Bottom arrow: pointing left <-
             pathBottom.reset();
-            pathBottom.moveTo(right, yBottom);
-            pathBottom.lineTo(left, yBottom);
-            pathBottom.lineTo(left + arrowHeadSize, yBottom - arrowHeadSize * 0.7f);
-            pathBottom.moveTo(left, yBottom);
-            pathBottom.lineTo(left + arrowHeadSize, yBottom + arrowHeadSize * 0.7f);
+            pathBottom.moveTo(right, bottomY);
+            pathBottom.lineTo(left, bottomY);
+            pathBottom.moveTo(left + arrowLen, bottomY - arrowSpread);
+            pathBottom.lineTo(left, bottomY);
+            pathBottom.lineTo(left + arrowLen, bottomY + arrowSpread);
 
             canvas.drawPath(pathTop, paint);
             canvas.drawPath(pathBottom, paint);
@@ -269,7 +378,6 @@ public class VideoMirrorHelper {
         @Override
         public void setColorFilter(ColorFilter colorFilter) {
             paint.setColorFilter(colorFilter);
-            invalidateSelf();
         }
 
         @Override
