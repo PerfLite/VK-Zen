@@ -48,7 +48,7 @@ internal object VideoAdvertisementsRepoDFingerprint : Fingerprint(
 internal object VideoAdLayoutAFingerprint : Fingerprint(
     definingClass = "Lcom/vk/libvideo/design/view/ad/VideoAdLayout;",
     returnType = "V",
-    parameters = listOf("L", "Lcom/vk/libvideo/design/view/ad/data/a;", "L", "L", "L", "Lkotlin/Lazy;")
+    parameters = listOf("L", "L", "L", "L", "L", "Lkotlin/Lazy;")
 )
 
 // VideoFileOld (com.vk.dto.common.VideoFileOld): ad getters
@@ -91,7 +91,7 @@ internal object VideoGrowthTrapsManagerAFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf(
         "Landroid/content/Context;",
-        "Lcom/vk/video/growth/api/data/VideoGrowthVideoParams;",
+        "L",
         "Z",
         "L"
     )
@@ -102,7 +102,7 @@ internal object VideoGrowthTrapsManagerBFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf(
         "Landroid/content/Context;",
-        "Lcom/vk/video/growth/api/data/VideoGrowthVideoParams;",
+        "L",
         "J",
         "Lcom/vk/video/growth/api/data/VideoGrowthCommunitySource;"
     )

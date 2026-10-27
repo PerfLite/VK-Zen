@@ -1,6 +1,5 @@
 package app.morphe.patches.vk.misc
 
-import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.bytecodePatch
@@ -13,44 +12,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val EXTENSION_CLASS = "Lapp/morphe/extension/vk/vpn/VpnSpoof;"
-
-internal object CallVpnSnackbarDelegateFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "CallVpnSnackbarDelegate.kt" &&
-            method.returnType == "Z"
-    },
-    returnType = "Z"
-)
-
-internal object CallVpnSnackbarDelegateShowFingerprint : Fingerprint(
-    custom = { method, classDef ->
-        classDef.sourceFile == "CallVpnSnackbarDelegate.kt" &&
-            classDef.type.contains("$") &&
-            method.returnType == "V" &&
-            method.parameterTypes.size == 2 &&
-            method.parameterTypes[0].toString() == "Landroidx/fragment/app/FragmentManager;"
-    },
-    returnType = "V"
-)
-
-internal object DeviceCheckUtilsIsVpnFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "DeviceCheckUtils.kt" },
-    name = "isVpnConnected",
-    returnType = "Z"
-)
-
-internal object DeviceCheckUtilsIsProxyFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "DeviceCheckUtils.kt" },
-    name = "isProxyEnabled",
-    returnType = "Z"
-)
-
-internal object DefaultLocalTunnelDetectorStartFingerprint : Fingerprint(
-    custom = { _, classDef -> classDef.sourceFile == "DefaultLocalTunnelDetector.kt" },
-    name = "start",
-    returnType = "V",
-    parameters = emptyList()
-)
 
 private fun formatInvokeStatic(instruction: Instruction, targetMethod: String): String {
     return when (instruction) {
@@ -85,58 +46,7 @@ val vpnDetectionPatch = bytecodePatch(
     extendWith("extensions/vk.mpe")
 
     execute {
-        // 1. Disable VoIP call VPN warning snackbars
-        CallVpnSnackbarDelegateFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    const/4 v0, 0x0
-                    return v0
-                """
-            )
-        }
-
-        CallVpnSnackbarDelegateShowFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    return-void
-                """
-            )
-        }
-
-        // 2. Bypass DeviceCheckUtils VPN and proxy checks
-        DeviceCheckUtilsIsVpnFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    const/4 v0, 0x0
-                    return v0
-                """
-            )
-        }
-
-        DeviceCheckUtilsIsProxyFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    const/4 v0, 0x0
-                    return v0
-                """
-            )
-        }
-
-        // 3. Prevent DefaultLocalTunnelDetector from monitoring network tunnels
-        DefaultLocalTunnelDetectorStartFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    return-void
-                """
-            )
-        }
-
-        // 4. Intercept system-level network and proxy checks throughout the app
+        // Collect classes referencing system proxy properties
         val proxyClasses = (classDefByStrings("http.proxyHost") + classDefByStrings("http.proxyPort"))
             .map { it.type }
             .toSet()
@@ -147,38 +57,73 @@ val vpnDetectionPatch = bytecodePatch(
             if (classDef.type == EXTENSION_CLASS) return@classDefForEach
 
             val isProxyClass = classDef.type in proxyClasses
-            var classHasTargets = false
+            val isCallVpnSnackbar = classDef.sourceFile == "CallVpnSnackbarDelegate.kt"
+            val isDeviceCheckUtils = classDef.sourceFile == "DeviceCheckUtils.kt"
+            val isTunnelDetector = classDef.sourceFile == "DefaultLocalTunnelDetector.kt"
+
+            var classHasTargets = isCallVpnSnackbar || isDeviceCheckUtils || isTunnelDetector
 
             // Quick scan over read-only class methods to avoid creating unnecessary MutableClass instances
-            for (method in classDef.methods) {
-                val instructions = method.implementation?.instructions ?: continue
-                for (instruction in instructions) {
-                    val op = instruction.opcode
-                    if (op == Opcode.INVOKE_VIRTUAL || op == Opcode.INVOKE_VIRTUAL_RANGE) {
-                        val ref = (instruction as ReferenceInstruction).reference as MethodReference
-                        val defClass = ref.definingClass
-                        val name = ref.name
-                        if (defClass == "Landroid/net/NetworkCapabilities;" && (name == "hasTransport" || name == "hasCapability")) {
-                            classHasTargets = true
-                            break
-                        } else if (defClass == "Landroid/net/ConnectivityManager;" && name == "getNetworkInfo") {
-                            classHasTargets = true
-                            break
-                        }
-                    } else if (isProxyClass && (op == Opcode.INVOKE_STATIC || op == Opcode.INVOKE_STATIC_RANGE)) {
-                        val ref = (instruction as ReferenceInstruction).reference as MethodReference
-                        if (ref.definingClass == "Ljava/lang/System;" && ref.name == "getProperty") {
-                            classHasTargets = true
-                            break
+            if (!classHasTargets) {
+                for (method in classDef.methods) {
+                    val instructions = method.implementation?.instructions ?: continue
+                    for (instruction in instructions) {
+                        val op = instruction.opcode
+                        if (op == Opcode.INVOKE_VIRTUAL || op == Opcode.INVOKE_VIRTUAL_RANGE) {
+                            val ref = (instruction as ReferenceInstruction).reference as MethodReference
+                            val defClass = ref.definingClass
+                            val name = ref.name
+                            if (defClass == "Landroid/net/NetworkCapabilities;" && (name == "hasTransport" || name == "hasCapability")) {
+                                classHasTargets = true
+                                break
+                            } else if (defClass == "Landroid/net/ConnectivityManager;" && name == "getNetworkInfo") {
+                                classHasTargets = true
+                                break
+                            }
+                        } else if (isProxyClass && (op == Opcode.INVOKE_STATIC || op == Opcode.INVOKE_STATIC_RANGE)) {
+                            val ref = (instruction as ReferenceInstruction).reference as MethodReference
+                            if (ref.definingClass == "Ljava/lang/System;" && ref.name == "getProperty") {
+                                classHasTargets = true
+                                break
+                            }
                         }
                     }
+                    if (classHasTargets) break
                 }
-                if (classHasTargets) break
             }
 
             if (!classHasTargets) return@classDefForEach
 
             val mutableClass = mutableClassDefBy(classDef)
+
+            // Optional direct neutralization for specific VPN classes if present in this VK version
+            if (isCallVpnSnackbar) {
+                for (method in mutableClass.methods) {
+                    if (method.returnType == "Z") {
+                        method.addInstructions(0, "const/4 v0, 0x0\nreturn v0")
+                    } else if (classDef.type.contains("$") && method.returnType == "V" && method.parameterTypes.size == 2) {
+                        method.addInstructions(0, "return-void")
+                    }
+                }
+            }
+
+            if (isDeviceCheckUtils) {
+                for (method in mutableClass.methods) {
+                    if (method.returnType == "Z") {
+                        method.addInstructions(0, "const/4 v0, 0x0\nreturn v0")
+                    }
+                }
+            }
+
+            if (isTunnelDetector) {
+                for (method in mutableClass.methods) {
+                    if (method.name == "start") {
+                        method.addInstructions(0, "return-void")
+                    }
+                }
+            }
+
+            // Global instruction replacement: rewrites all calls to VpnSpoof
             for (method in mutableClass.methods) {
                 val instructions = method.implementation?.instructions?.toList() ?: continue
 

@@ -333,7 +333,7 @@ val feedAdsPatch = bytecodePatch(
         }
 
         // Modern MVI newsfeed: suppress DzenArticlesBlock
-        PostDisplayItemsBuilderOFingerprint.method.apply {
+        PostDisplayItemsBuilderOFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
