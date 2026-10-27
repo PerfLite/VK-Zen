@@ -14,7 +14,7 @@ public class SuperAppFilter {
     /**
      * Intercepts ListData passed to SuperAppFragment.Sq(ListData).
      * Filters items to keep only Weather mini-widget and
-     * Communities, Video, Clips, Settings menu items.
+     * Communities, Video, Clips, Steps, Settings menu items.
      * All other widgets (ads, promo banners, games, posters, etc.) are removed.
      */
     public static Object filterListData(Object listData) {
@@ -52,7 +52,7 @@ public class SuperAppFilter {
                 continue;
             }
 
-            // 2. Expandable service menu (SuperAppExpandableMenuItem)
+            // 2. Expandable service menu (SuperAppExpandableMenuItem / SuperAppShowcaseExpandableServiceMenu)
             if (isExpandableMenuItem(item)) {
                 if (processExpandableMenuItem(item)) {
                     result.add(item);
@@ -84,6 +84,9 @@ public class SuperAppFilter {
                 if (item == null || isSuperAppAdOrPromoItem(item)) {
                     continue;
                 }
+                if (isExpandableMenuItem(item)) {
+                    processExpandableMenuItem(item);
+                }
                 result.add(item);
             }
         }
@@ -92,6 +95,7 @@ public class SuperAppFilter {
     }
 
     private static boolean isMiniWidgetsItem(Object item) {
+        if (item == null) return false;
         String className = item.getClass().getName();
         if (className.endsWith(".dxu0") || className.endsWith(".myx0") || className.contains("MiniWidgets")) {
             return true;
@@ -105,11 +109,16 @@ public class SuperAppFilter {
     }
 
     private static boolean isExpandableMenuItem(Object item) {
+        if (item == null) return false;
         String className = item.getClass().getName();
-        if (className.endsWith(".zuu0") || className.endsWith(".jwx0") || className.contains("ExpandableMenu")) {
+        if (className.contains("Expandable") || className.endsWith(".zuu0") || className.endsWith(".jwx0")) {
             return true;
         }
         for (Field f : item.getClass().getDeclaredFields()) {
+            String typeName = f.getType().getName();
+            if (typeName.contains("Expandable")) {
+                return true;
+            }
             if (List.class.isAssignableFrom(f.getType())) {
                 try {
                     f.setAccessible(true);
@@ -118,7 +127,7 @@ public class SuperAppFilter {
                         Object first = ((List<?>) listObj).get(0);
                         if (first != null) {
                             String fName = first.getClass().getName();
-                            if (fName.contains("Expandable") || hasFieldOfType(first.getClass(), "MenuItem")) {
+                            if (fName.contains("Expandable") || fName.contains("MenuItem") || hasFieldOfType(first.getClass(), "MenuItem")) {
                                 return true;
                             }
                         }
@@ -130,9 +139,11 @@ public class SuperAppFilter {
     }
 
     private static boolean isShowcaseMenuItem(Object item) {
+        if (item == null) return false;
         String className = item.getClass().getName();
         if (className.endsWith(".lyu0") || className.endsWith(".rzx0") || className.endsWith(".tzx0")
-                || className.endsWith(".wzx0") || className.contains("ShowcaseMenuItem")) {
+                || className.endsWith(".wzx0") || className.contains("ShowcaseMenuItem")
+                || className.contains("CustomMenu")) {
             return true;
         }
         for (Field f : item.getClass().getDeclaredFields()) {
@@ -199,27 +210,19 @@ public class SuperAppFilter {
     }
 
     private static boolean processExpandableMenuItem(Object item) {
+        if (item == null) return false;
         try {
+            // 1. Direct List field on item
+            if (filterListInObject(item)) {
+                return true;
+            }
+
+            // 2. Child fields (e.g. payload field on SuperAppShowcaseExpandableServiceMenu)
             for (Field f : item.getClass().getDeclaredFields()) {
-                if (!List.class.isAssignableFrom(f.getType())) continue;
                 f.setAccessible(true);
-                Object listObj = f.get(item);
-                if (listObj instanceof List) {
-                    List<?> menuItems = (List<?>) listObj;
-                    List<Object> filtered = new ArrayList<>();
-                    for (Object mItem : menuItems) {
-                        if (isAllowedMenuItem(mItem)) {
-                            filtered.add(mItem);
-                        }
-                    }
-                    if (!filtered.isEmpty()) {
-                        if (listObj instanceof ArrayList) {
-                            ((ArrayList<?>) listObj).clear();
-                            //noinspection unchecked
-                            ((ArrayList<Object>) listObj).addAll(filtered);
-                        } else {
-                            f.set(item, filtered);
-                        }
+                Object child = f.get(item);
+                if (child != null && !child.getClass().getName().startsWith("java.lang.")) {
+                    if (filterListInObject(child)) {
                         return true;
                     }
                 }
@@ -228,6 +231,52 @@ public class SuperAppFilter {
             Log.e(TAG, "Error filtering expandable menu", t);
         }
         return false;
+    }
+
+    private static boolean filterListInObject(Object holder) {
+        if (holder == null) return false;
+        boolean modified = false;
+        for (Field f : holder.getClass().getDeclaredFields()) {
+            if (!List.class.isAssignableFrom(f.getType())) continue;
+            try {
+                f.setAccessible(true);
+                Object listObj = f.get(holder);
+                if (listObj instanceof List) {
+                    List<?> menuItems = (List<?>) listObj;
+                    List<Object> filtered = new ArrayList<>();
+                    for (Object mItem : menuItems) {
+                        if (mItem != null && isAllowedMenuItem(mItem)) {
+                            filtered.add(mItem);
+                        }
+                    }
+                    if (!filtered.isEmpty()) {
+                        boolean updated = false;
+                        try {
+                            //noinspection unchecked
+                            List<Object> mutable = (List<Object>) listObj;
+                            mutable.clear();
+                            mutable.addAll(filtered);
+                            updated = true;
+                        } catch (Throwable ignored) {}
+
+                        if (!updated) {
+                            try {
+                                f.set(holder, filtered);
+                                updated = true;
+                            } catch (Throwable t) {
+                                Log.w(TAG, "Could not set field " + f.getName() + " on " + holder.getClass().getName(), t);
+                            }
+                        }
+                        if (updated) {
+                            modified = true;
+                        }
+                    }
+                }
+            } catch (Throwable t) {
+                Log.w(TAG, "Error filtering list field " + f.getName(), t);
+            }
+        }
+        return modified;
     }
 
     private static boolean isWeatherMiniWidget(Object item) {
@@ -241,6 +290,14 @@ public class SuperAppFilter {
         return false;
     }
 
+    private static boolean isBlockedItem(String all) {
+        if (all == null) return false;
+        return all.contains("знакомств") || all.contains("dating")
+                || all.contains("билет") || all.contains("ticket")
+                || all.contains("закладк") || all.contains("bookmark") || all.contains("fave")
+                || all.contains("more_item");
+    }
+
     private static boolean isAllowedMenuItem(Object item) {
         if (item == null) return false;
         try {
@@ -252,6 +309,11 @@ public class SuperAppFilter {
             StringBuilder sb = new StringBuilder();
             collectStrings(item, sb, 0);
             String all = sb.toString().toLowerCase(Locale.ROOT);
+
+            // Blocked items (Знакомства, Билеты, Закладки, etc.)
+            if (isBlockedItem(all)) {
+                return false;
+            }
 
             // 1. Communities / Groups
             if (all.contains("communities") || all.contains("groups") || all.contains("group")
@@ -270,8 +332,8 @@ public class SuperAppFilter {
             if (all.contains("setting") || all.contains("settings") || all.contains("настройк")) {
                 return true;
             }
-            // 5. Bookmarks / Fave
-            if (all.contains("bookmark") || all.contains("bookmarks") || all.contains("fave") || all.contains("закладк")) {
+            // 5. Steps (Шаги)
+            if (all.contains("step") || all.contains("steps") || all.contains("шаг")) {
                 return true;
             }
             // 6. Music / Audio
@@ -287,12 +349,19 @@ public class SuperAppFilter {
     }
 
     private static boolean isMoreItem(Object item) {
+        if (item == null) return false;
         try {
             for (Field f : item.getClass().getDeclaredFields()) {
                 f.setAccessible(true);
                 Object val = f.get(item);
                 if (val instanceof Enum && "MORE_ITEM".equals(((Enum<?>) val).name())) {
                     return true;
+                }
+                if (val instanceof CharSequence) {
+                    String s = val.toString().trim().toLowerCase(Locale.ROOT);
+                    if ("more_item".equals(s) || "ещё".equals(s) || "еще".equals(s)) {
+                        return true;
+                    }
                 }
             }
         } catch (Throwable ignored) {}
@@ -317,11 +386,11 @@ public class SuperAppFilter {
         if (obj == null || depth > 2) return;
         Class<?> clazz = obj.getClass();
         String cName = clazz.getName();
-        if (cName.startsWith("java.lang.") && !(obj instanceof String)) return;
+        if (cName.startsWith("java.lang.") && !(obj instanceof CharSequence)) return;
         if (cName.startsWith("android.graphics.")) return;
 
-        if (obj instanceof String) {
-            sb.append(' ').append(obj);
+        if (obj instanceof CharSequence) {
+            sb.append(' ').append(obj.toString());
             return;
         }
 
@@ -330,8 +399,8 @@ public class SuperAppFilter {
                 f.setAccessible(true);
                 Object val = f.get(obj);
                 if (val == null) continue;
-                if (val instanceof String) {
-                    sb.append(' ').append(val);
+                if (val instanceof CharSequence) {
+                    sb.append(' ').append(val.toString());
                 } else if (val instanceof Enum) {
                     sb.append(' ').append(((Enum<?>) val).name());
                 } else if (depth < 2 && !f.getType().isPrimitive() && !Collection.class.isAssignableFrom(f.getType())) {
@@ -353,7 +422,8 @@ public class SuperAppFilter {
             StringBuilder sb = new StringBuilder();
             collectStrings(item, sb, 0);
             String all = sb.toString().toLowerCase(Locale.ROOT);
-            if (all.contains("promo") || all.contains("реклам") || all.contains("акция") || all.contains("скидк")) {
+            if (all.contains("promo") || all.contains("реклам") || all.contains("акция") || all.contains("скидк")
+                    || isBlockedItem(all)) {
                 return true;
             }
         } catch (Throwable ignored) {}
