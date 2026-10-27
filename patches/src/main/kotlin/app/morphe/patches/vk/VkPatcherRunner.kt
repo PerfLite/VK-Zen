@@ -40,9 +40,27 @@ fun main(args: Array<String>) {
         mkdirs()
     }
 
+    val sourceApk = if (inputApk.name.endsWith(".apks", ignoreCase = true) || inputApk.name.endsWith(".xapk", ignoreCase = true)) {
+        val merged = File(tempWorkingDir, "merged.apk")
+        println("Input is APKS/XAPK bundle. Merging modules using ApkMerger...")
+        val mergerLogger = object : app.morphe.patcher.logging.Logger() {
+            override fun log(level: app.morphe.patcher.logging.LogLevel, message: String) {
+                println("[ApkMerger $level] $message")
+            }
+        }
+        app.morphe.patcher.apk.ApkMerger(mergerLogger).merge(inputApk, merged)
+        println("Merged successfully: ${merged.length() / (1024 * 1024)} MB")
+        val savedMerged = File(inputApk.parentFile, "VK_8.201_merged.apk")
+        merged.copyTo(savedMerged, overwrite = true)
+        println("Saved standalone merged APK to: ${savedMerged.absolutePath}")
+        merged
+    } else {
+        inputApk
+    }
+
     val tempApk = File(tempWorkingDir, "vk-temp.apk")
     println("Copying input APK to temporary working location...")
-    inputApk.copyTo(tempApk, overwrite = true)
+    sourceApk.copyTo(tempApk, overwrite = true)
 
     println("Preparing BKS keystore...")
     val keyStoreFile = File(if (File("patches").isDirectory) "patches/morphe.bks" else "morphe.bks").canonicalFile

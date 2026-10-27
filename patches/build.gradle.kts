@@ -56,4 +56,8 @@ tasks {
     publish {
         dependsOn("generatePatchesList")
     }
+
+    named("build") {
+        dependsOn("buildAndroid")
+    }
 }
