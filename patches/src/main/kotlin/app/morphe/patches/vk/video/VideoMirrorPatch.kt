@@ -56,7 +56,7 @@ val videoMirrorPatch = bytecodePatch(
             addInstructions(
                 lastIdx,
                 """
-                    invoke-static { p0 }, $EXTENSION_CLASS->injectMirrorButton(Landroid/view/ViewGroup;)V
+                    invoke-static/range { p0 .. p0 }, $EXTENSION_CLASS->injectMirrorButton(Landroid/view/ViewGroup;)V
                 """
             )
         }
@@ -66,7 +66,7 @@ val videoMirrorPatch = bytecodePatch(
             addInstructions(
                 lastIdx,
                 """
-                    invoke-static { p0 }, $EXTENSION_CLASS->injectMirrorButton(Landroid/view/ViewGroup;)V
+                    invoke-static/range { p0 .. p0 }, $EXTENSION_CLASS->injectMirrorButton(Landroid/view/ViewGroup;)V
                 """
             )
         }
@@ -76,7 +76,7 @@ val videoMirrorPatch = bytecodePatch(
             addInstructions(
                 lastIdx,
                 """
-                    invoke-static { p0 }, $EXTENSION_CLASS->injectMirrorButton(Landroid/view/ViewGroup;)V
+                    invoke-static/range { p0 .. p0 }, $EXTENSION_CLASS->injectMirrorButton(Landroid/view/ViewGroup;)V
                 """
             )
         }
