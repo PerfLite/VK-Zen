@@ -15,6 +15,13 @@ internal object OneVideoPlayerQualityExtCFingerprint : Fingerprint(
     parameters = listOf("Lone/video/player/OneVideoPlayer;", "I")
 )
 
+// a: retrieves player quality, receives (OneVideoPlayer) -> Integer
+internal object OneVideoPlayerQualityExtAFingerprint : Fingerprint(
+    custom = { _, classDef -> classDef.sourceFile == "OneVideoPlayerQualityExt.kt" && !classDef.type.contains("$") },
+    returnType = "Ljava/lang/Integer;",
+    parameters = listOf("Lone/video/player/OneVideoPlayer;")
+)
+
 @Suppress("unused")
 val videoQualityPatch = bytecodePatch(
     name = "Video quality preference",
@@ -32,6 +39,19 @@ val videoQualityPatch = bytecodePatch(
                 """
                     invoke-static { p0, p1 }, $EXTENSION_CLASS->getPreferredQuality(Ljava/lang/Object;I)I
                     move-result p1
+                """
+            )
+        }
+
+        OneVideoPlayerQualityExtAFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    invoke-static { p0 }, $EXTENSION_CLASS->getForcedQualityDisplay(Ljava/lang/Object;)Ljava/lang/Integer;
+                    move-result-object v0
+                    if-eqz v0, :cond_original
+                    return-object v0
+                    :cond_original
                 """
             )
         }

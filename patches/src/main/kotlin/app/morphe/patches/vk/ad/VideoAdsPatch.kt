@@ -140,6 +140,74 @@ internal object VideoGrowthListingControllerBFingerprint : Fingerprint(
 )
 
 @Suppress("unused")
+// BackgroundRestrictionProvider (blocks "Смотреть видео в фоне можно в отдельном приложении" / RuStore download prompts)
+internal object BackgroundRestrictionProviderBFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "BackgroundRestrictionProvider.kt" &&
+        !classDef.type.contains("\$") &&
+        method.name == "b"
+    },
+    returnType = "L",
+    parameters = listOf("L")
+)
+
+// TrapBottomSheet (dismisses any VK Video / RuStore modal bottomsheet immediately)
+internal object TrapBottomSheetOnStartFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "TrapBottomSheet.kt" &&
+        !classDef.type.contains("\$") &&
+        method.name == "onStart"
+    },
+    returnType = "V",
+    parameters = emptyList()
+)
+
+// TrapBannerDelegate (blocks promotional mini banners under video player)
+internal object TrapBannerDelegateAFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "TrapBannerDelegate.kt" &&
+        method.name == "a" &&
+        method.parameters.size == 6
+    },
+    returnType = "V"
+)
+
+internal object TrapBannerDelegateBFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "TrapBannerDelegate.kt" &&
+        method.name == "b" &&
+        method.parameters.size == 8
+    },
+    returnType = "V"
+)
+
+internal object TrapBannerDelegateCFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "TrapBannerDelegate.kt" &&
+        method.name == "c" &&
+        method.returnType == "Z"
+    },
+    returnType = "Z"
+)
+
+// VideoGrowthTrapCoordinatorImpl (neutralizes trap coordinators from triggering background/download traps)
+internal object VideoGrowthTrapCoordinatorBFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthTrapCoordinatorImpl.kt" &&
+        method.name == "b" &&
+        method.returnType == "Z"
+    },
+    returnType = "Z"
+)
+
+internal object VideoGrowthTrapCoordinatorAFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.sourceFile == "VideoGrowthTrapCoordinatorImpl.kt" &&
+        method.name == "a" &&
+        method.parameters.size == 2
+    }
+)
+
 val videoAdsPatch = bytecodePatch(
     name = "Video ads",
     description = "Blocks video player in-stream advertisements (prerolls, midrolls, postrolls, ad overlays), attached promo ad cards below videos, and VK Video / RuStore download prompts.",
@@ -302,6 +370,72 @@ val videoAdsPatch = bytecodePatch(
                 """
             )
         }
+BackgroundRestrictionProviderBFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    const/4 v0, 0x0
+                    return-object v0
+                """
+            )
+        }
+
+        TrapBottomSheetOnStartFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    invoke-virtual { p0 }, Lcom/vk/core/ui/bottomsheet/ModalBottomSheet;->dismissAllowingStateLoss()V
+                    return-void
+                """
+            )
+        }
+
+        TrapBannerDelegateAFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    return-void
+                """
+            )
+        }
+
+        TrapBannerDelegateBFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    return-void
+                """
+            )
+        }
+
+        TrapBannerDelegateCFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    const/4 v0, 0x0
+                    return v0
+                """
+            )
+        }
+
+        VideoGrowthTrapCoordinatorBFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    const/4 v0, 0x0
+                    return v0
+                """
+            )
+        }
+
+        VideoGrowthTrapCoordinatorAFingerprint.method.apply {
+            addInstructions(
+                0,
+                """
+                    const/4 v0, 0x0
+                    return-object v0
+                """
+            )
+        }
     }
 }
-

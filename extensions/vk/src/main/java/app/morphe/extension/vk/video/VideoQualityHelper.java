@@ -5,7 +5,9 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -84,10 +86,10 @@ public class VideoQualityHelper {
     }
 
     /**
-     * Intercepts player quality selection in xsna.soe0.c(OneVideoPlayer, int).
-     * If originalQuality <= 0 (i.e. -2 or -4 representing auto / initial preparation),
-     * it resolves the best matching track resolution according to user preference.
-     * If user explicitly selected a positive resolution, it is preserved.
+     * Intercepts player quality selection in xsna.ilg0.c(OneVideoPlayer, int).
+     * If originalQuality <= 0 (i.e. -2 or -4 representing auto / initial startup),
+     * it resolves and applies the best matching track resolution according to user preference.
+     * If user explicitly selected a positive resolution in UI, it is preserved.
      */
     public static int getPreferredQuality(Object player, int originalQuality) {
         try {
@@ -112,22 +114,14 @@ public class VideoQualityHelper {
                 return originalQuality;
             }
 
-            // Retrieve available tracks: try player.e0() or player.z()
-            List<?> tracks = null;
-            try {
-                Method e0 = player.getClass().getMethod("e0");
-                tracks = (List<?>) e0.invoke(player);
-            } catch (Throwable ignored) {}
+            // Retrieve available tracks: try player.i0() or fallback e0()/z()
+            List<?> tracks = getPlayerTracks(player);
 
             if (tracks == null || tracks.isEmpty()) {
-                try {
-                    Method z = player.getClass().getMethod("z");
-                    tracks = (List<?>) z.invoke(player);
-                } catch (Throwable ignored) {}
-            }
-
-            if (tracks == null || tracks.isEmpty()) {
-                return originalQuality;
+                // Video is just starting; tracks have not loaded yet.
+                // Attach a listener to apply preferred quality as soon as tracks load.
+                attachTrackReadyListener(player, targetHeight);
+                return targetHeight;
             }
 
             List<Integer> availableHeights = new ArrayList<>();
@@ -139,7 +133,8 @@ public class VideoQualityHelper {
             }
 
             if (availableHeights.isEmpty()) {
-                return originalQuality;
+                attachTrackReadyListener(player, targetHeight);
+                return targetHeight;
             }
 
             // 1. Exact match available
@@ -169,6 +164,120 @@ public class VideoQualityHelper {
             Log.e(TAG, "Error in getPreferredQuality", t);
         }
         return originalQuality;
+    }
+
+    /**
+     * Intercepts OneVideoPlayerQualityExt.a(OneVideoPlayer) -> Integer.
+     * Overrides the quality returned to player UI so it displays 1080p instead of "Авто"
+     * when the player is initialized with the user's preferred resolution.
+     */
+    public static Integer getForcedQualityDisplay(Object player) {
+        try {
+            String pref = getPreferredQualitySetting();
+            if (DEFAULT_QUALITY.equals(pref) || pref == null || pref.isEmpty()) {
+                return null;
+            }
+
+            int targetHeight;
+            try {
+                targetHeight = Integer.parseInt(pref);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+
+            if (player != null) {
+                // If player already has an explicitly selected track, let original logic read its height
+                try {
+                    Method hMethod = player.getClass().getMethod("H");
+                    Object track = hMethod.invoke(player);
+                    if (track != null) {
+                        return null;
+                    }
+                } catch (Throwable ignored) {}
+            }
+
+            // In Auto mode or initial startup: report user's target quality
+            return Integer.valueOf(targetHeight);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static List<?> getPlayerTracks(Object player) {
+        if (player == null) return null;
+        try {
+            Method i0 = player.getClass().getMethod("i0");
+            Object res = i0.invoke(player);
+            if (res instanceof List) {
+                return (List<?>) res;
+            }
+        } catch (Throwable ignored) {}
+
+        try {
+            Method e0 = player.getClass().getMethod("e0");
+            Object res = e0.invoke(player);
+            if (res instanceof List) {
+                return (List<?>) res;
+            }
+        } catch (Throwable ignored) {}
+
+        return null;
+    }
+
+    public static void attachTrackReadyListener(final Object player, final int targetHeight) {
+        if (player == null) return;
+        try {
+            final ClassLoader cl = player.getClass().getClassLoader();
+            final Class<?> listenerClass = Class.forName("one.video.player.OneVideoPlayer$c", false, cl);
+            final Object[] proxyRef = new Object[1];
+
+            InvocationHandler handler = new InvocationHandler() {
+                private boolean applied = false;
+
+                @Override
+                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                    if (!applied) {
+                        try {
+                            List<?> tracks = getPlayerTracks(player);
+                            if (tracks != null && !tracks.isEmpty()) {
+                                applied = true;
+                                // Unregister proxy listener
+                                try {
+                                    Method b0 = player.getClass().getMethod("b0", listenerClass);
+                                    b0.invoke(player, proxyRef[0]);
+                                } catch (Throwable ignored) {}
+
+                                // Invoke OneVideoPlayerQualityExt.c(player, targetHeight)
+                                Class<?> extClass = Class.forName("xsna.ilg0", false, cl);
+                                Method cMethod = extClass.getMethod("c", player.getClass(), int.class);
+                                cMethod.invoke(null, player, targetHeight);
+                                Log.d(TAG, "Applied preferred quality on track load: " + targetHeight);
+                            }
+                        } catch (Throwable t) {
+                            Log.e(TAG, "Error applying preferred quality in listener", t);
+                        }
+                    }
+
+                    Class<?> ret = method.getReturnType();
+                    if (ret == void.class) return null;
+                    if (ret == boolean.class) return false;
+                    if (ret == int.class) return 0;
+                    if (ret == long.class) return 0L;
+                    if (ret == float.class) return 0.0f;
+                    if (ret == double.class) return 0.0;
+                    return null;
+                }
+            };
+
+            Object proxy = Proxy.newProxyInstance(cl, new Class<?>[] { listenerClass }, handler);
+            proxyRef[0] = proxy;
+
+            Method a0 = player.getClass().getMethod("a0", listenerClass);
+            a0.invoke(player, proxy);
+            Log.d(TAG, "Registered track-ready listener for preferred quality " + targetHeight);
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to attach track ready listener", t);
+        }
     }
 
     public static int extractTrackHeight(Object track) {
