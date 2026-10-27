@@ -13,8 +13,10 @@ import app.morphe.patches.vk.video.videoQualityPatch
 import app.morphe.patches.vk.layout.navigationPatch
 import app.morphe.patches.vk.misc.cloneAppPatch
 import app.morphe.patches.vk.misc.nativePatch
+import app.morphe.patches.vk.misc.pushNotificationsPatch
 import app.morphe.patches.vk.misc.securityPatch
 import app.morphe.patches.vk.misc.telemetryPatch
+import app.morphe.patches.vk.misc.vpnDetectionPatch
 import app.morphe.patches.vk.music.audioAdsPatch
 import app.morphe.patches.vk.music.backgroundPlaybackPatch
 import app.morphe.patches.vk.music.musicCachePatch
@@ -81,6 +83,8 @@ fun main(args: Array<String>) {
             nativePatch,
             cloneAppPatch,
             securityPatch,
+            pushNotificationsPatch,
+            vpnDetectionPatch,
             musicCachePatch,
             telemetryPatch
         )
