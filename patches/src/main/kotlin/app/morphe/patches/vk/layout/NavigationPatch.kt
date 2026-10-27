@@ -17,12 +17,6 @@ internal object TabbarStateConstructorFingerprint : Fingerprint(
     )
 )
 
-// Items getter: the name is obfuscated and changes between releases (c in 8.195, d in 8.200)
-internal object TabbarStateGetItemsFingerprint : Fingerprint(
-    definingClass = "Lcom/vk/tabbar/core/api/domain/TabbarState;",
-    returnType = "Ljava/util/List;",
-    parameters = emptyList()
-)
 
 internal object MainActivityOnResumeFingerprint : Fingerprint(
     definingClass = "Lcom/vkontakte/android/MainActivity;",
@@ -89,18 +83,6 @@ val navigationPatch = bytecodePatch(
             )
         }
 
-        TabbarStateGetItemsFingerprint.method.apply {
-            addInstructions(
-                0,
-                """
-                    invoke-static { p0 }, $EXTENSION_CLASS->filterTabbarStateItems(Ljava/lang/Object;)Ljava/util/List;
-                    move-result-object v0
-                    if-eqz v0, :cond_orig
-                    return-object v0
-                    :cond_orig
-                """
-            )
-        }
 
         MainActivityOnResumeFingerprint.method.apply {
             addInstructions(
