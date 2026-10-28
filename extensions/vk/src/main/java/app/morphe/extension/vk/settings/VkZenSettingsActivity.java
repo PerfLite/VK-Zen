@@ -210,15 +210,17 @@ public class VkZenSettingsActivity extends Activity {
     private View createTabbarSlotsCard() {
         LinearLayout card = createCardLayout();
 
+        final String[] availableTabs = NavigationFilter.availableKeys();
+
         TextView title = new TextView(this);
-        title.setText("Нижняя панель (5 вкладок)");
+        title.setText("Нижняя панель (" + availableTabs.length + " вкладок)");
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setTextColor(colorTextPrimary);
         card.addView(title);
 
         TextView desc = new TextView(this);
-        desc.setText("VK показывает в нижней панели только эти пять вкладок — можно задать, какая из них в каком слоте стоит:");
+        desc.setText("Состав панели задаёт VK, а порядок — ты. Нажми на слот и выбери, какая вкладка там стоит:");
         desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         desc.setTextColor(colorTextSecondary);
         desc.setPadding(0, dp(2), 0, dp(12));
@@ -277,10 +279,10 @@ public class VkZenSettingsActivity extends Activity {
         slotsContainer.removeAllViews();
 
         final String[] slots = getCurrentSlots();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < slots.length; i++) {
             final int slotIndex = i;
             String key = slots[i];
-            String label = NavigationFilter.getTabLabelByKey(key);
+            String label = NavigationFilter.labelFor(key);
 
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
@@ -330,7 +332,7 @@ public class VkZenSettingsActivity extends Activity {
 
             slotsContainer.addView(row);
 
-            if (i < 4) {
+            if (i < slots.length - 1) {
                 View divider = new View(this);
                 divider.setBackgroundColor(colorStroke);
                 LinearLayout.LayoutParams lpDiv = new LinearLayout.LayoutParams(
@@ -373,9 +375,10 @@ public class VkZenSettingsActivity extends Activity {
         LinearLayout listLayout = new LinearLayout(this);
         listLayout.setOrientation(LinearLayout.VERTICAL);
 
-        for (int j = 0; j < NavigationFilter.ALL_TAB_KEYS.length; j++) {
-            final String key = NavigationFilter.ALL_TAB_KEYS[j];
-            final String label = NavigationFilter.ALL_TAB_LABELS[j];
+        String[] available = NavigationFilter.availableKeys();
+        for (int j = 0; j < available.length; j++) {
+            final String key = available[j];
+            final String label = NavigationFilter.labelFor(key);
             final boolean isSelected = key.equalsIgnoreCase(slots[slotIndex]);
 
             LinearLayout row = new LinearLayout(this);
@@ -422,7 +425,7 @@ public class VkZenSettingsActivity extends Activity {
                 public void onClick(View v) {
                     slots[slotIndex] = key;
                     StringBuilder sb = new StringBuilder();
-                    for (int k = 0; k < 5; k++) {
+                    for (int k = 0; k < slots.length; k++) {
                         if (k > 0) sb.append(",");
                         sb.append(slots[k]);
                     }
@@ -438,7 +441,8 @@ public class VkZenSettingsActivity extends Activity {
 
         sv.addView(listLayout);
         dialogRoot.addView(sv, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // Cancel button
         TextView btnCancel = new TextView(this);
@@ -461,26 +465,23 @@ public class VkZenSettingsActivity extends Activity {
         dialog.setContentView(dialogRoot);
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.90f);
-            int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.65f);
-            dialog.getWindow().setLayout(width, height);
+            dialog.getWindow().setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.90f),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
         }
         dialog.show();
     }
 
     private String[] getCurrentSlots() {
         SharedPreferences prefs = NavigationFilter.getPrefs(this);
-        String current = NavigationFilter.getEffectiveTabs(prefs);
-        String[] parts = current.split(",");
-        String[] slots = new String[5];
-        String[] defaults = "home,friends,im,music,hub".split(",");
-        for (int i = 0; i < 5; i++) {
-            if (i < parts.length && !parts[i].trim().isEmpty()) {
-                slots[i] = parts[i].trim().toLowerCase();
-            } else if (i < defaults.length) {
-                slots[i] = defaults[i];
+        String[] available = NavigationFilter.availableKeys();
+        String[] normalized = NavigationFilter.normalizeTabs(
+                NavigationFilter.getEffectiveTabs(prefs)).split(",");
+        String[] slots = new String[available.length];
+        for (int i = 0; i < slots.length; i++) {
+            if (i < normalized.length && !normalized[i].trim().isEmpty()) {
+                slots[i] = normalized[i].trim().toLowerCase();
             } else {
-                slots[i] = "home";
+                slots[i] = available[i];
             }
         }
         return slots;
@@ -676,7 +677,8 @@ public class VkZenSettingsActivity extends Activity {
 
         sv.addView(listLayout);
         dialogRoot.addView(sv, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // Cancel button
         TextView btnCancel = new TextView(this);
@@ -699,9 +701,8 @@ public class VkZenSettingsActivity extends Activity {
         dialog.setContentView(dialogRoot);
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.90f);
-            int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.55f);
-            dialog.getWindow().setLayout(width, height);
+            dialog.getWindow().setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.90f),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
         }
         dialog.show();
     }

@@ -29,12 +29,9 @@ public class NavigationFilter {
     private static final String KEY_TABS_VERSION = "tabs_version";
     private static final int TABS_VERSION = 2;
     private static final String DEFAULT_TABS = "home,friends,im,music,hub";
+    private static final String KEY_SEEN_TABS = "seen_tabs";
 
-    /**
-     * The bottom bar in VK 8.201 only ever renders these tabs; the rest of the app's surfaces
-     * (clips, video, groups, profile) are not addressable as bar items, so offering them would
-     * only produce a slot that silently falls back to another tab.
-     */
+    /** Fallback used until VK's actual tab list has been observed at least once. */
     public static final String[] ALL_TAB_KEYS = {
         "home", "friends", "im", "music", "hub"
     };
@@ -46,6 +43,103 @@ public class NavigationFilter {
         "Музыка",
         "Сервисы"
     };
+
+    /** Labels for keys VK can send but that our fallback list does not contain. */
+    private static String extraLabel(String key) {
+        if ("overview".equals(key)) return "Обзор";
+        if ("clips".equals(key)) return "Клипы";
+        if ("news".equals(key)) return "Новости";
+        if ("groups".equals(key)) return "Сообщества";
+        if ("video".equals(key)) return "Видео";
+        if ("profile".equals(key)) return "Профиль";
+        return null;
+    }
+
+    /**
+     * VK decides the bottom bar composition per account and it changes between launches
+     * (five tabs for some configs, six for others, with different spellings), so the set the
+     * settings screen offers comes from what the platform actually sent us.
+     */
+    public static String[] availableKeys() {
+        SharedPreferences prefs = getPrefs(null);
+        if (prefs != null) {
+            String seen = prefs.getString(KEY_SEEN_TABS, null);
+            String[] keys = splitKeys(seen);
+            if (keys.length > 0) {
+                return keys;
+            }
+        }
+        return ALL_TAB_KEYS;
+    }
+
+    public static String labelFor(String key) {
+        String extra = extraLabel(key);
+        if (extra != null) {
+            return extra;
+        }
+        for (int i = 0; i < ALL_TAB_KEYS.length; i++) {
+            if (ALL_TAB_KEYS[i].equals(key)) {
+                return ALL_TAB_LABELS[i];
+            }
+        }
+        return key;
+    }
+
+    /** Placeholder slots VK uses for empty positions; never offer them as a tab. */
+    private static boolean isPlaceholder(String key) {
+        return key.isEmpty() || key.equals("empty");
+    }
+
+    private static String[] splitKeys(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return new String[0];
+        }
+        ArrayList<String> keys = new ArrayList<>();
+        for (String token : raw.split(",")) {
+            String key = token.trim().toLowerCase();
+            if (!isPlaceholder(key) && !containsKey(keys, key)) {
+                keys.add(key);
+            }
+        }
+        return keys.toArray(new String[0]);
+    }
+
+    private static boolean containsKey(List<String> keys, String key) {
+        for (String existing : keys) {
+            if (existing.equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void rememberSeenKeys(String[] names) {
+        ArrayList<String> keys = new ArrayList<>();
+        for (String name : names) {
+            if (!isPlaceholder(name) && !containsKey(keys, name)) {
+                keys.add(name);
+            }
+        }
+        if (keys.isEmpty()) {
+            return;
+        }
+        SharedPreferences prefs = getPrefs(null);
+        if (prefs == null) {
+            return;
+        }
+        StringBuilder joined = new StringBuilder();
+        for (String key : keys) {
+            if (joined.length() > 0) {
+                joined.append(',');
+            }
+            joined.append(key);
+        }
+        String previous = prefs.getString(KEY_SEEN_TABS, null);
+        if (!joined.toString().equals(previous)) {
+            prefs.edit().putString(KEY_SEEN_TABS, joined.toString()).apply();
+            Log.i(TAG, "rememberSeenKeys: VK tabs are now [" + joined + "]");
+        }
+    }
 
     /**
      * Called from TabbarState's items getter. Rewrites the items field to the user's order when
@@ -64,6 +158,13 @@ public class NavigationFilter {
                 return;
             }
             List<?> list = (List<?>) current;
+            if (!list.isEmpty()) {
+                String[] observed = new String[list.size()];
+                for (int i = 0; i < list.size(); i++) {
+                    observed[i] = getItemName(list.get(i));
+                }
+                rememberSeenKeys(observed);
+            }
             List<?> reordered = filterTabbarItems(list);
             if (reordered == null || reordered == list || sameOrder(list, reordered)) {
                 return;
@@ -138,16 +239,16 @@ public class NavigationFilter {
             if (raw.isEmpty()) {
                 continue;
             }
-            // VK ships different key spellings per surface, so accept both our stable name
-            // and its platform alias ("friends" vs "overview").
-            String alias = canonicalizeKey(raw);
-            for (int i = 0; i < count; i++) {
-                if (!used[i] && (raw.equals(names[i]) || alias.equals(names[i]))) {
-                    used[i] = true;
-                    result.add(items.get(i));
-                    matched++;
-                    break;
-                }
+            // Exact name first: VK can send "overview" and "friends" as two different tabs at
+            // once, and folding onto the alias first would steal the wrong slot.
+            int match = indexOfName(items, names, used, raw);
+            if (match < 0) {
+                match = indexOfName(items, names, used, canonicalizeKey(raw));
+            }
+            if (match >= 0) {
+                used[match] = true;
+                result.add(items.get(match));
+                matched++;
             }
         }
 
@@ -183,6 +284,18 @@ public class NavigationFilter {
         if (key.equals("news")) return "home";
         if (key.equals("services")) return "hub";
         return key;
+    }
+
+    private static int indexOfName(List<?> items, String[] names, boolean[] used, String wanted) {
+        if (wanted == null || wanted.isEmpty()) {
+            return -1;
+        }
+        for (int i = 0; i < names.length; i++) {
+            if (!used[i] && wanted.equals(names[i])) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static String getItemName(Object item) {
@@ -231,24 +344,27 @@ public class NavigationFilter {
     }
 
     /**
-     * Turns any stored value into a complete, duplicate-free permutation of the available tabs:
-     * unknown keys (from older builds that offered them) are dropped and missing ones appended,
-     * so a stale preference can never degrade into a partially applied order.
+     * Turns any stored value into a complete, duplicate-free permutation of the tabs VK actually
+     * offers: unknown keys are dropped and missing ones appended, so a stale preference (or a
+     * server config that gained or lost a tab) can never degrade into a partial order.
      */
     public static String normalizeTabs(String raw) {
+        String[] available = availableKeys();
         LinkedHashSet<String> kept = new LinkedHashSet<>();
         for (String token : raw.split(",")) {
-            String key = reverseAlias(token.trim().toLowerCase());
-            if (isKnownKey(key)) {
-                kept.add(key);
+            String key = token.trim().toLowerCase();
+            if (isPlaceholder(key) || kept.contains(key)) {
+                continue;
+            }
+            String resolved = resolveKey(key, available);
+            if (resolved != null) {
+                kept.add(resolved);
             } else if (!key.isEmpty()) {
                 logOnce("normalizeTabs: dropping unavailable tab \"" + key + "\"");
             }
         }
-        for (String key : ALL_TAB_KEYS) {
-            if (!kept.contains(key)) {
-                kept.add(key);
-            }
+        for (String key : available) {
+            kept.add(key);
         }
         StringBuilder sb = new StringBuilder();
         for (String key : kept) {
@@ -260,13 +376,26 @@ public class NavigationFilter {
         return sb.toString();
     }
 
-    private static boolean isKnownKey(String key) {
-        for (String known : ALL_TAB_KEYS) {
-            if (known.equals(key)) {
-                return true;
+    /** Exact match wins; aliases only apply when VK has no tab under our stable name. */
+    private static String resolveKey(String key, String[] available) {
+        for (String candidate : available) {
+            if (candidate.equals(key)) {
+                return candidate;
             }
         }
-        return false;
+        String alias = canonicalizeKey(key);
+        for (String candidate : available) {
+            if (candidate.equals(alias)) {
+                return candidate;
+            }
+        }
+        String reverse = reverseAlias(key);
+        for (String candidate : available) {
+            if (candidate.equals(reverse)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     /** Saved values may carry VK's alternate spellings; fold them onto our stable keys. */
