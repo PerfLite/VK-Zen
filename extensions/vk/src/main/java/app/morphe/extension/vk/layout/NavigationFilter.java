@@ -30,6 +30,7 @@ public class NavigationFilter {
     private static final int TABS_VERSION = 2;
     private static final String DEFAULT_TABS = "home,friends,im,music,hub";
     private static final String KEY_SEEN_TABS = "seen_tabs";
+    private static final String KEY_HIDDEN_TABS = "hidden_tabs";
 
     /** Fallback used until VK's actual tab list has been observed at least once. */
     public static final String[] ALL_TAB_KEYS = {
@@ -83,6 +84,79 @@ public class NavigationFilter {
             }
         }
         return key;
+    }
+
+    /** Tabs the user chose to hide; they stay in VK's config but are dropped from the bar. */
+    public static String[] hiddenKeys() {
+        SharedPreferences prefs = getPrefs(null);
+        if (prefs == null) {
+            return new String[0];
+        }
+        return splitKeys(prefs.getString(KEY_HIDDEN_TABS, ""));
+    }
+
+    public static boolean isHidden(String key) {
+        for (String hidden : hiddenKeys()) {
+            if (hidden.equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void setHidden(Context context, String key, boolean hide) {
+        SharedPreferences prefs = getPrefs(context);
+        if (prefs == null || key == null || key.isEmpty()) {
+            return;
+        }
+        LinkedHashSet<String> hidden = new LinkedHashSet<>();
+        for (String existing : hiddenKeys()) {
+            hidden.add(existing);
+        }
+        if (hide) {
+            hidden.add(key);
+        } else {
+            hidden.remove(key);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String value : hidden) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(value);
+        }
+        prefs.edit().putString(KEY_HIDDEN_TABS, sb.toString()).apply();
+        Log.i(TAG, "setHidden: " + key + " -> " + hide + " (now [" + sb + "])");
+    }
+
+    /**
+     * Drops the hidden tabs from an already ordered list. Refuses to empty the bar, so a user
+     * cannot lock himself out of the app by hiding every tab.
+     */
+    private static List<?> dropHidden(List<?> ordered) {
+        String[] hidden = hiddenKeys();
+        if (hidden.length == 0 || ordered.size() <= 1) {
+            return ordered;
+        }
+        ArrayList<Object> kept = new ArrayList<>();
+        for (Object item : ordered) {
+            String name = getItemName(item);
+            boolean isHidden = false;
+            for (String key : hidden) {
+                if (key.equals(name)) {
+                    isHidden = true;
+                    break;
+                }
+            }
+            if (!isHidden) {
+                kept.add(item);
+            }
+        }
+        if (kept.isEmpty() || kept.size() == ordered.size()) {
+            return ordered;
+        }
+        logOnce("dropHidden: " + ordered.size() + " -> " + kept.size() + " tabs");
+        return kept;
     }
 
     /** Placeholder slots VK uses for empty positions; never offer them as a tab. */
@@ -254,7 +328,7 @@ public class NavigationFilter {
 
         if (matched == 0) {
             logOnce("filterTabbarItems: no requested key exists in this VK build -> left untouched");
-            return items;
+            return dropHidden(items);
         }
 
         // Keep every leftover tab in its original place so the bar always ends up with the
@@ -271,7 +345,7 @@ public class NavigationFilter {
         }
         logOnce("filterTabbarItems: reordered " + matched + " tabs, total=" + result.size()
                 + " out=[" + outNames.toString().trim() + "]");
-        return result;
+        return dropHidden(result);
     }
 
     /** VK renames tab keys between builds; our settings screen keeps the stable names. */

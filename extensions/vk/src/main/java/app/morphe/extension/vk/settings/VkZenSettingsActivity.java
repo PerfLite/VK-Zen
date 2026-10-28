@@ -19,6 +19,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -309,12 +311,34 @@ public class VkZenSettingsActivity extends Activity {
 
             // Slot text
             TextView text = new TextView(this);
-            text.setText(label);
+            final boolean tabHidden = NavigationFilter.isHidden(key);
+            text.setText(label + (tabHidden ? " (скрыта)" : ""));
             text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            text.setTextColor(colorTextPrimary);
+            text.setTextColor(tabHidden ? colorTextSecondary : colorTextPrimary);
             LinearLayout.LayoutParams lpText = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
             text.setLayoutParams(lpText);
             row.addView(text);
+
+            // Visibility toggle: hide the tab without removing it from VK's config
+            final String rowKey = key;
+            CheckBox visibleBox = new CheckBox(this);
+            visibleBox.setChecked(!tabHidden);
+            LinearLayout.LayoutParams lpBox = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lpBox.setMargins(0, 0, dp(8), 0);
+            visibleBox.setLayoutParams(lpBox);
+            visibleBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    NavigationFilter.setHidden(VkZenSettingsActivity.this, rowKey, !isChecked);
+                    refreshSlotsList();
+                    Toast.makeText(VkZenSettingsActivity.this,
+                            isChecked ? "Вкладка вернётся после перезапуска"
+                                      : "Вкладка скроется после перезапуска",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+            row.addView(visibleBox);
 
             // Arrow
             TextView arrow = new TextView(this);
