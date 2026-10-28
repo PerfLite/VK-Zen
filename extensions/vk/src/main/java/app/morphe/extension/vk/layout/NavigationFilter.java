@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Set;
 
 public class NavigationFilter {
+
+    private static final String TAG = "MorpheTabbar";
 
     private static final String PREF_NAME = "morphe_tabbar_prefs";
     private static final String KEY_TABS = "user_tabs";
@@ -70,11 +73,21 @@ public class NavigationFilter {
      */
     public static List<?> filterTabbarItems(List<?> items) {
         if (items == null) {
+            Log.i(TAG, "filterTabbarItems: items=null");
             return null;
         }
 
         SharedPreferences prefs = getPrefs(null);
         String savedTabs = getEffectiveTabs(prefs);
+
+        StringBuilder incoming = new StringBuilder();
+        for (Object it : items) {
+            incoming.append(getItemName(it)).append(' ');
+        }
+        Log.i(TAG, "filterTabbarItems CALLED: size=" + items.size()
+                + " class=" + (items.isEmpty() ? "?" : items.get(0).getClass().getName())
+                + " savedTabs=" + savedTabs
+                + " names=[" + incoming.toString().trim() + "]");
 
         String[] requestedOrder = savedTabs.split(",");
         ArrayList<Object> result = new ArrayList<>();
@@ -111,6 +124,8 @@ public class NavigationFilter {
                 if (synthesized != null) {
                     result.add(synthesized);
                     addedKeys.add(key);
+                } else {
+                    Log.i(TAG, "filterTabbarItems: no match and synthesis FAILED for key=" + key);
                 }
             }
 
@@ -120,9 +135,11 @@ public class NavigationFilter {
         }
 
         if (result.isEmpty()) {
+            Log.i(TAG, "filterTabbarItems: result EMPTY -> returning original list untouched");
             return items;
         }
 
+        Log.i(TAG, "filterTabbarItems: applied order -> " + result.size() + " tabs");
         return result;
     }
 
@@ -150,6 +167,7 @@ public class NavigationFilter {
                 return key;
             }
         }
+        Log.i(TAG, "getItemName: UNRESOLVED class=" + item.getClass().getName() + " repr=" + repr);
         return "";
     }
 
@@ -178,6 +196,7 @@ public class NavigationFilter {
         }
         int ver = prefs.getInt(KEY_TABS_VERSION, 0);
         if (ver < TABS_VERSION) {
+            Log.i(TAG, "getEffectiveTabs: version " + ver + " < " + TABS_VERSION + " -> RESET to defaults (user tabs discarded)");
             prefs.edit().putString(KEY_TABS, DEFAULT_TABS).putInt(KEY_TABS_VERSION, TABS_VERSION).apply();
             return DEFAULT_TABS;
         }
@@ -459,9 +478,11 @@ public class NavigationFilter {
                     sb.append(slots[i]);
                 }
                 SharedPreferences p = getPrefs(activity);
+                boolean written = false;
                 if (p != null) {
-                    p.edit().putString(KEY_TABS, sb.toString()).putInt(KEY_TABS_VERSION, TABS_VERSION).commit();
+                    written = p.edit().putString(KEY_TABS, sb.toString()).putInt(KEY_TABS_VERSION, TABS_VERSION).commit();
                 }
+                Log.i(TAG, "SAVE tabs=" + sb + " prefsNull=" + (p == null) + " committed=" + written);
                 Toast.makeText(activity, "Вкладки сохранены! Перезапуск...", Toast.LENGTH_SHORT).show();
                 restartApp(activity);
             }
@@ -485,9 +506,11 @@ public class NavigationFilter {
 
     public static void saveTabs(Context context, String tabs) {
         SharedPreferences p = getPrefs(context);
+        boolean written = false;
         if (p != null) {
-            p.edit().putString(KEY_TABS, tabs).putInt(KEY_TABS_VERSION, TABS_VERSION).commit();
+            written = p.edit().putString(KEY_TABS, tabs).putInt(KEY_TABS_VERSION, TABS_VERSION).commit();
         }
+        Log.i(TAG, "saveTabs: tabs=" + tabs + " prefsNull=" + (p == null) + " committed=" + written);
     }
 
     public static void restartApp(final Activity activity) {
@@ -497,14 +520,17 @@ public class NavigationFilter {
             public void run() {
                 try {
                     Intent intent = activity.getPackageManager().getLaunchIntentForPackage(activity.getPackageName());
+                    Log.i(TAG, "restartApp: pkg=" + activity.getPackageName() + " launchIntent=" + (intent != null));
                     if (intent != null) {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         activity.startActivity(intent);
                         Runtime.getRuntime().exit(0);
                     } else {
+                        Log.i(TAG, "restartApp: no launch intent -> recreate() only (process keeps old tabbar)");
                         activity.recreate();
                     }
                 } catch (Throwable t) {
+                    Log.i(TAG, "restartApp: failed, falling back to recreate: " + t);
                     try {
                         activity.recreate();
                     } catch (Throwable ignored) {}
@@ -548,6 +574,7 @@ public class NavigationFilter {
         if (context != null) {
             return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         }
+        Log.i(TAG, "getPrefs: NULL (no context resolvable) -> tab prefs unavailable");
         return null;
     }
 }
