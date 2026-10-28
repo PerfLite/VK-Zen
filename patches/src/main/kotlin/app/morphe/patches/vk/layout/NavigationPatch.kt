@@ -7,14 +7,11 @@ import app.morphe.patches.vk.shared.Constants.COMPATIBILITY_VK
 
 private const val EXTENSION_CLASS = "Lapp/morphe/extension/vk/layout/NavigationFilter;"
 
-internal object TabbarStateConstructorFingerprint : Fingerprint(
+// TabbarState's no-arg List getter. Matched by shape because R8 renames it every build.
+internal object TabbarStateGetItemsFingerprint : Fingerprint(
     definingClass = "Lcom/vk/tabbar/core/api/domain/TabbarState;",
-    name = "<init>",
-    returnType = "V",
-    parameters = listOf(
-        "Ljava/util/List;",
-        "Ljava/lang/Boolean;"
-    )
+    returnType = "Ljava/util/List;",
+    parameters = emptyList()
 )
 
 
@@ -73,12 +70,19 @@ val navigationPatch = bytecodePatch(
     extendWith("extensions/vk.mpe")
 
     execute {
-        TabbarStateConstructorFingerprint.method.apply {
+        // The visible bar is built from the items read through this getter
+        // (MainActivity -> NavigationDelegateBottom -> BottomNavigationState ->
+        // BottomNavigationInteractor.b), and that TabbarState instance never goes through the
+        // constructor, so the getter is the only place that reaches the UI.
+        //
+        // The method has a single register, which holds `this`, so the patch must not write a
+        // result into it: clobbering p0 would make the original body read the field from null.
+        // Instead the helper rewrites the field in place and the untouched body returns it.
+        TabbarStateGetItemsFingerprint.method.apply {
             addInstructions(
                 0,
                 """
-                    invoke-static { p1 }, $EXTENSION_CLASS->filterTabbarItems(Ljava/util/List;)Ljava/util/List;
-                    move-result-object p1
+                    invoke-static/range { p0 .. p0 }, $EXTENSION_CLASS->applyCustomOrder(Ljava/lang/Object;)V
                 """
             )
         }

@@ -46,11 +46,62 @@ public class NavigationFilter {
     };
 
     /**
+     * Called from TabbarState's items getter. Rewrites the items field to the user's order when
+     * it differs, then lets the untouched getter return it. Never replaces the list with
+     * something VK cannot route, and writes only on an actual change.
+     */
+    public static void applyCustomOrder(Object state) {
+        if (state == null) {
+            return;
+        }
+        try {
+            Field f = state.getClass().getDeclaredField("items");
+            f.setAccessible(true);
+            Object current = f.get(state);
+            if (!(current instanceof List)) {
+                return;
+            }
+            List<?> list = (List<?>) current;
+            List<?> reordered = filterTabbarItems(list);
+            if (reordered == null || reordered == list || sameOrder(list, reordered)) {
+                return;
+            }
+            f.set(state, reordered);
+            Log.i(TAG, "applyCustomOrder: state=" + System.identityHashCode(state)
+                    + " items replaced with user order");
+        } catch (Throwable t) {
+            Log.i(TAG, "applyCustomOrder failed: " + t);
+        }
+    }
+
+    private static boolean sameOrder(List<?> a, List<?> b) {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (int i = 0; i < a.size(); i++) {
+            if (a.get(i) != b.get(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static final int LOG_LIMIT = 10;
+    private static volatile int loggedCalls = 0;
+
+    private static void logOnce(String message) {
+        if (loggedCalls < LOG_LIMIT) {
+            loggedCalls++;
+            Log.i(TAG, message);
+        }
+    }
+
+    /**
      * Filters and customizes TabbarState items according to user preferences.
      */
     public static List<?> filterTabbarItems(List<?> items) {
         if (items == null) {
-            Log.i(TAG, "filterTabbarItems: items=null");
+            logOnce("filterTabbarItems: items=null");
             return null;
         }
 
@@ -58,7 +109,7 @@ public class NavigationFilter {
         // Never replace those with fabricated items: a name the client does not know has no
         // route and no icon, so the whole bar renders as if nothing was applied.
         if (items.isEmpty()) {
-            Log.i(TAG, "filterTabbarItems: empty state -> left untouched");
+            logOnce("filterTabbarItems: empty state -> left untouched");
             return items;
         }
 
@@ -72,8 +123,7 @@ public class NavigationFilter {
             names[i] = getItemName(items.get(i));
             incoming.append(names[i]).append(' ');
         }
-        Log.i(TAG, "filterTabbarItems CALLED: size=" + count
-                + " class=" + items.get(0).getClass().getName()
+        logOnce("filterTabbarItems: size=" + count
                 + " savedTabs=" + savedTabs
                 + " names=[" + incoming.toString().trim() + "]");
 
@@ -82,12 +132,15 @@ public class NavigationFilter {
         int matched = 0;
 
         for (String reqKey : savedTabs.split(",")) {
-            String key = canonicalizeKey(reqKey);
-            if (key.isEmpty()) {
+            String raw = reqKey.trim().toLowerCase();
+            if (raw.isEmpty()) {
                 continue;
             }
+            // VK ships different key spellings per surface, so accept both our stable name
+            // and its platform alias ("friends" vs "overview").
+            String alias = canonicalizeKey(raw);
             for (int i = 0; i < count; i++) {
-                if (!used[i] && key.equals(names[i])) {
+                if (!used[i] && (raw.equals(names[i]) || alias.equals(names[i]))) {
                     used[i] = true;
                     result.add(items.get(i));
                     matched++;
@@ -97,7 +150,7 @@ public class NavigationFilter {
         }
 
         if (matched == 0) {
-            Log.i(TAG, "filterTabbarItems: no requested key exists in this VK build -> left untouched");
+            logOnce("filterTabbarItems: no requested key exists in this VK build -> left untouched");
             return items;
         }
 
@@ -109,7 +162,12 @@ public class NavigationFilter {
             }
         }
 
-        Log.i(TAG, "filterTabbarItems: reordered " + matched + " tabs, total=" + result.size());
+        StringBuilder outNames = new StringBuilder();
+        for (int i = 0; i < result.size(); i++) {
+            outNames.append(getItemName(result.get(i))).append(' ');
+        }
+        logOnce("filterTabbarItems: reordered " + matched + " tabs, total=" + result.size()
+                + " out=[" + outNames.toString().trim() + "]");
         return result;
     }
 
