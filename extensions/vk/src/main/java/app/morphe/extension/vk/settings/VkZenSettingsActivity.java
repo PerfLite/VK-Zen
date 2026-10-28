@@ -273,6 +273,29 @@ public class VkZenSettingsActivity extends Activity {
         });
         card.addView(btnReset);
 
+        // Opt-in: bring back tabs VK knows how to open but left out of this config
+        CheckBox addMissing = new CheckBox(this);
+        addMissing.setText("Показывать вкладки, которых нет в текущем конфиге VK (экспериментально)");
+        addMissing.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        addMissing.setTextColor(colorTextSecondary);
+        addMissing.setChecked(NavigationFilter.isAddMissingEnabled());
+        LinearLayout.LayoutParams lpMissing = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lpMissing.setMargins(0, dp(8), 0, 0);
+        addMissing.setLayoutParams(lpMissing);
+        addMissing.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                NavigationFilter.setAddMissing(VkZenSettingsActivity.this, isChecked);
+                refreshSlotsList();
+                Toast.makeText(VkZenSettingsActivity.this,
+                        isChecked ? "Доступные VK вкладки появятся в списке"
+                                  : "Синтезированные вкладки убраны из списка",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+        card.addView(addMissing);
+
         return card;
     }
 
@@ -399,7 +422,7 @@ public class VkZenSettingsActivity extends Activity {
         LinearLayout listLayout = new LinearLayout(this);
         listLayout.setOrientation(LinearLayout.VERTICAL);
 
-        String[] available = NavigationFilter.availableKeys();
+        String[] available = NavigationFilter.choiceKeys();
         for (int j = 0; j < available.length; j++) {
             final String key = available[j];
             final String label = NavigationFilter.labelFor(key);

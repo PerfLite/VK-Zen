@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ public class NavigationFilter {
     private static final String DEFAULT_TABS = "home,friends,im,music,hub";
     private static final String KEY_SEEN_TABS = "seen_tabs";
     private static final String KEY_HIDDEN_TABS = "hidden_tabs";
+    private static final String KEY_ADD_MISSING = "add_missing_tabs";
 
     /** Fallback used until VK's actual tab list has been observed at least once. */
     public static final String[] ALL_TAB_KEYS = {
@@ -73,8 +75,23 @@ public class NavigationFilter {
         return ALL_TAB_KEYS;
     }
 
-    public static String labelFor(String key) {
-        String extra = extraLabel(key);
+    /** Picker options: what VK sends now, plus our stable names when the user opted in. */
+    public static String[] choiceKeys() {
+        String[] available = availableKeys();
+        if (!isAddMissingEnabled()) {
+            return available;
+        }
+        LinkedHashSet<String> all = new LinkedHashSet<>();
+        for (String key : available) {
+            all.add(key);
+        }
+        for (String key : ALL_TAB_KEYS) {
+            all.add(key);
+        }
+        return all.toArray(new String[0]);
+    }
+
+    public static String labelFor(String key) {        String extra = extraLabel(key);
         if (extra != null) {
             return extra;
         }
@@ -157,6 +174,38 @@ public class NavigationFilter {
         }
         logOnce("dropHidden: " + ordered.size() + " -> " + kept.size() + " tabs");
         return kept;
+    }
+
+    /**
+     * Opt-in switch: put back tabs that this VK build knows how to open but did not include in
+     * the current server payload (music being the common one).
+     */
+    public static boolean isAddMissingEnabled() {
+        SharedPreferences prefs = getPrefs(null);
+        return prefs != null && prefs.getBoolean(KEY_ADD_MISSING, false);
+    }
+
+    public static void setAddMissing(Context context, boolean enabled) {
+        SharedPreferences prefs = getPrefs(context);
+        if (prefs == null) {
+            return;
+        }
+        prefs.edit().putBoolean(KEY_ADD_MISSING, enabled).apply();
+        Log.i(TAG, "setAddMissing: " + enabled);
+    }
+
+    private static Object createTabbarItem(Class<?> itemClass, String name) {
+        try {
+            for (Constructor<?> ctor : itemClass.getConstructors()) {
+                Class<?>[] types = ctor.getParameterTypes();
+                if (types.length == 5 && types[0] == String.class && types[3] == boolean.class) {
+                    return ctor.newInstance(name, null, labelFor(name), true, null);
+                }
+            }
+        } catch (Throwable t) {
+            Log.i(TAG, "createTabbarItem failed for \"" + name + "\": " + t);
+        }
+        return null;
     }
 
     /** Placeholder slots VK uses for empty positions; never offer them as a tab. */
@@ -307,6 +356,7 @@ public class NavigationFilter {
         boolean[] used = new boolean[count];
         ArrayList<Object> result = new ArrayList<>();
         int matched = 0;
+        Class<?> itemClass = items.get(0).getClass();
 
         for (String reqKey : savedTabs.split(",")) {
             String raw = reqKey.trim().toLowerCase();
@@ -323,6 +373,15 @@ public class NavigationFilter {
                 used[match] = true;
                 result.add(items.get(match));
                 matched++;
+            } else if (isAddMissingEnabled() && itemClass != null) {
+                // Opt-in: VK's own configs have used these names before, so the client still has
+                // a route and an icon for them even when this payload omits the entry.
+                Object synthesized = createTabbarItem(itemClass, raw);
+                if (synthesized != null) {
+                    result.add(synthesized);
+                    matched++;
+                    logOnce("filterTabbarItems: synthesized missing tab \"" + raw + "\"");
+                }
             }
         }
 
@@ -438,6 +497,11 @@ public class NavigationFilter {
         }
         for (String key : available) {
             order.add(key);
+        }
+        if (isAddMissingEnabled()) {
+            for (String key : ALL_TAB_KEYS) {
+                order.add(key);
+            }
         }
         return order.toArray(new String[0]);
     }
