@@ -340,34 +340,51 @@ public class NavigationFilter {
         if (saved == null || saved.trim().isEmpty()) {
             return DEFAULT_TABS;
         }
-        return normalizeTabs(saved);
+        return saved;
     }
 
     /**
-     * Turns any stored value into a complete, duplicate-free permutation of the tabs VK actually
-     * offers: unknown keys are dropped and missing ones appended, so a stale preference (or a
-     * server config that gained or lost a tab) can never degrade into a partial order.
+     * The tabs to show in the settings screen: everything VK currently offers, ordered by the
+     * user's saved preference. Keys the user chose but the platform does not send right now are
+     * simply absent from the view - they stay in the stored order (see mergeOrder) so they
+     * reappear in their slot as soon as VK adds the tab back.
      */
-    public static String normalizeTabs(String raw) {
+    public static String[] displayOrder(String saved) {
         String[] available = availableKeys();
-        LinkedHashSet<String> kept = new LinkedHashSet<>();
-        for (String token : raw.split(",")) {
+        LinkedHashSet<String> order = new LinkedHashSet<>();
+        for (String token : saved.split(",")) {
             String key = token.trim().toLowerCase();
-            if (isPlaceholder(key) || kept.contains(key)) {
+            if (isPlaceholder(key)) {
                 continue;
             }
             String resolved = resolveKey(key, available);
             if (resolved != null) {
-                kept.add(resolved);
-            } else if (!key.isEmpty()) {
-                logOnce("normalizeTabs: dropping unavailable tab \"" + key + "\"");
+                order.add(resolved);
             }
         }
         for (String key : available) {
-            kept.add(key);
+            order.add(key);
+        }
+        return order.toArray(new String[0]);
+    }
+
+    /**
+     * Saves a new arrangement of the currently available tabs without losing the user's choice
+     * for tabs VK has not sent right now: those are re-inserted at their previous positions.
+     */
+    public static String mergeOrder(String saved, String[] newOrder) {
+        LinkedHashSet<String> available = new LinkedHashSet<>(java.util.Arrays.asList(newOrder));
+        ArrayList<String> result = new ArrayList<>(available);
+        String[] previous = saved.split(",");
+        for (int i = 0; i < previous.length; i++) {
+            String key = previous[i].trim().toLowerCase();
+            if (isPlaceholder(key) || available.contains(key) || result.contains(key)) {
+                continue;
+            }
+            result.add(Math.min(i, result.size()), key);
         }
         StringBuilder sb = new StringBuilder();
-        for (String key : kept) {
+        for (String key : result) {
             if (sb.length() > 0) {
                 sb.append(',');
             }

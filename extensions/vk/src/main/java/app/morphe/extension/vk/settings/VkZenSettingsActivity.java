@@ -424,12 +424,10 @@ public class VkZenSettingsActivity extends Activity {
                 @Override
                 public void onClick(View v) {
                     slots[slotIndex] = key;
-                    StringBuilder sb = new StringBuilder();
-                    for (int k = 0; k < slots.length; k++) {
-                        if (k > 0) sb.append(",");
-                        sb.append(slots[k]);
-                    }
-                    NavigationFilter.saveTabs(VkZenSettingsActivity.this, sb.toString());
+                    String stored = NavigationFilter.getEffectiveTabs(
+                            NavigationFilter.getPrefs(VkZenSettingsActivity.this));
+                    NavigationFilter.saveTabs(VkZenSettingsActivity.this,
+                            NavigationFilter.mergeOrder(stored, slots));
                     refreshSlotsList();
                     dialog.dismiss();
                     Toast.makeText(VkZenSettingsActivity.this, "Слот " + (slotIndex + 1) + ": " + label, Toast.LENGTH_SHORT).show();
@@ -473,18 +471,7 @@ public class VkZenSettingsActivity extends Activity {
 
     private String[] getCurrentSlots() {
         SharedPreferences prefs = NavigationFilter.getPrefs(this);
-        String[] available = NavigationFilter.availableKeys();
-        String[] normalized = NavigationFilter.normalizeTabs(
-                NavigationFilter.getEffectiveTabs(prefs)).split(",");
-        String[] slots = new String[available.length];
-        for (int i = 0; i < slots.length; i++) {
-            if (i < normalized.length && !normalized[i].trim().isEmpty()) {
-                slots[i] = normalized[i].trim().toLowerCase();
-            } else {
-                slots[i] = available[i];
-            }
-        }
-        return slots;
+        return NavigationFilter.displayOrder(NavigationFilter.getEffectiveTabs(prefs));
     }
 
     private View createVideoQualityCard() {
