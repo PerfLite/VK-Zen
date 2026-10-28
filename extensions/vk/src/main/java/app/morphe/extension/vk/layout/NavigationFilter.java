@@ -14,14 +14,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class NavigationFilter {
 
@@ -51,25 +47,6 @@ public class NavigationFilter {
 
     /**
      * Filters and customizes TabbarState items according to user preferences.
-     * Called whenever TabbarState.c() (getItems) is queried.
-     */
-    public static List<?> filterTabbarStateItems(Object tabbarState) {
-        if (tabbarState == null) {
-            return null;
-        }
-        try {
-            Field f = tabbarState.getClass().getDeclaredField("items");
-            f.setAccessible(true);
-            Object itemsObj = f.get(tabbarState);
-            if (itemsObj instanceof List) {
-                return filterTabbarItems((List<?>) itemsObj);
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    /**
-     * Filters and customizes TabbarState items according to user preferences.
      */
     public static List<?> filterTabbarItems(List<?> items) {
         if (items == null) {
@@ -77,70 +54,75 @@ public class NavigationFilter {
             return null;
         }
 
-        SharedPreferences prefs = getPrefs(null);
-        String savedTabs = getEffectiveTabs(prefs);
-
-        StringBuilder incoming = new StringBuilder();
-        for (Object it : items) {
-            incoming.append(getItemName(it)).append(' ');
-        }
-        Log.i(TAG, "filterTabbarItems CALLED: size=" + items.size()
-                + " class=" + (items.isEmpty() ? "?" : items.get(0).getClass().getName())
-                + " savedTabs=" + savedTabs
-                + " names=[" + incoming.toString().trim() + "]");
-
-        String[] requestedOrder = savedTabs.split(",");
-        ArrayList<Object> result = new ArrayList<>();
-        Set<String> addedKeys = new HashSet<>();
-
-        Class<?> itemClass = !items.isEmpty() ? items.get(0).getClass() : null;
-        if (itemClass == null) {
-            try {
-                itemClass = Class.forName("com.vk.tabbar.core.api.domain.TabbarItem");
-            } catch (Throwable ignored) {}
-        }
-
-        for (String reqKey : requestedOrder) {
-            String key = reqKey.trim().toLowerCase();
-            if (key.isEmpty() || addedKeys.contains(key)) {
-                continue;
-            }
-
-            // 1. Look for existing item in original list
-            Object matchingItem = null;
-            for (Object it : items) {
-                if (it != null && key.equals(getItemName(it))) {
-                    matchingItem = it;
-                    break;
-                }
-            }
-
-            if (matchingItem != null) {
-                result.add(matchingItem);
-                addedKeys.add(key);
-            } else if (itemClass != null) {
-                // 2. Synthesize TabbarItem if requested (e.g. music, groups, video)
-                Object synthesized = createTabbarItem(itemClass, key);
-                if (synthesized != null) {
-                    result.add(synthesized);
-                    addedKeys.add(key);
-                } else {
-                    Log.i(TAG, "filterTabbarItems: no match and synthesis FAILED for key=" + key);
-                }
-            }
-
-            if (result.size() >= 5) {
-                break;
-            }
-        }
-
-        if (result.isEmpty()) {
-            Log.i(TAG, "filterTabbarItems: result EMPTY -> returning original list untouched");
+        // VK builds TabbarState several times per launch, including empty/loading states.
+        // Never replace those with fabricated items: a name the client does not know has no
+        // route and no icon, so the whole bar renders as if nothing was applied.
+        if (items.isEmpty()) {
+            Log.i(TAG, "filterTabbarItems: empty state -> left untouched");
             return items;
         }
 
-        Log.i(TAG, "filterTabbarItems: applied order -> " + result.size() + " tabs");
+        SharedPreferences prefs = getPrefs(null);
+        String savedTabs = getEffectiveTabs(prefs);
+
+        int count = items.size();
+        String[] names = new String[count];
+        StringBuilder incoming = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            names[i] = getItemName(items.get(i));
+            incoming.append(names[i]).append(' ');
+        }
+        Log.i(TAG, "filterTabbarItems CALLED: size=" + count
+                + " class=" + items.get(0).getClass().getName()
+                + " savedTabs=" + savedTabs
+                + " names=[" + incoming.toString().trim() + "]");
+
+        boolean[] used = new boolean[count];
+        ArrayList<Object> result = new ArrayList<>();
+        int matched = 0;
+
+        for (String reqKey : savedTabs.split(",")) {
+            String key = canonicalizeKey(reqKey);
+            if (key.isEmpty()) {
+                continue;
+            }
+            for (int i = 0; i < count; i++) {
+                if (!used[i] && key.equals(names[i])) {
+                    used[i] = true;
+                    result.add(items.get(i));
+                    matched++;
+                    break;
+                }
+            }
+        }
+
+        if (matched == 0) {
+            Log.i(TAG, "filterTabbarItems: no requested key exists in this VK build -> left untouched");
+            return items;
+        }
+
+        // Keep every leftover tab in its original place so the bar always ends up with the
+        // same number of real, routable tabs VK gave us.
+        for (int i = 0; i < count; i++) {
+            if (!used[i]) {
+                result.add(items.get(i));
+            }
+        }
+
+        Log.i(TAG, "filterTabbarItems: reordered " + matched + " tabs, total=" + result.size());
         return result;
+    }
+
+    /** VK renames tab keys between builds; our settings screen keeps the stable names. */
+    private static String canonicalizeKey(String rawKey) {
+        String key = rawKey.trim().toLowerCase();
+        if (key.isEmpty()) {
+            return key;
+        }
+        if (key.equals("friends")) return "overview";
+        if (key.equals("news")) return "home";
+        if (key.equals("services")) return "hub";
+        return key;
     }
 
     private static String getItemName(Object item) {
@@ -171,25 +153,6 @@ public class NavigationFilter {
         return "";
     }
 
-    private static Object createTabbarItem(Class<?> itemClass, String name) {
-        try {
-            if (itemClass == null) {
-                try {
-                    itemClass = Class.forName("com.vk.tabbar.core.api.domain.TabbarItem");
-                } catch (Throwable ignored) {}
-            }
-            if (itemClass == null) return null;
-            String title = getTabTitle(name);
-            for (Constructor<?> ctor : itemClass.getConstructors()) {
-                Class<?>[] pTypes = ctor.getParameterTypes();
-                if (pTypes.length == 5 && pTypes[0] == String.class && pTypes[3] == boolean.class) {
-                    return ctor.newInstance(name, null, title, true, null);
-                }
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
     public static String getEffectiveTabs(SharedPreferences prefs) {
         if (prefs == null) {
             return DEFAULT_TABS;
@@ -205,19 +168,6 @@ public class NavigationFilter {
             return DEFAULT_TABS;
         }
         return saved;
-    }
-
-    public static String getTabTitle(String key) {
-        if ("home".equalsIgnoreCase(key)) return "Главная";
-        if ("friends".equalsIgnoreCase(key)) return "Друзья";
-        if ("im".equalsIgnoreCase(key)) return "Сообщения";
-        if ("music".equalsIgnoreCase(key)) return "Музыка";
-        if ("hub".equalsIgnoreCase(key)) return "Сервисы";
-        if ("groups".equalsIgnoreCase(key)) return "Сообщества";
-        if ("profile".equalsIgnoreCase(key)) return "Профиль";
-        if ("clips".equalsIgnoreCase(key)) return "Клипы";
-        if ("video".equalsIgnoreCase(key)) return "Видео";
-        return key;
     }
 
     /**
