@@ -217,7 +217,7 @@ val videoAdsPatch = bytecodePatch(
 
     execute {
         // Neutralize VideoAdvertisementsRepositoryImpl methods so video ads are never loaded
-        VideoAdvertisementsRepoGFingerprint.method.apply {
+        VideoAdvertisementsRepoGFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -226,7 +226,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoAdvertisementsRepoBFingerprint.method.apply {
+        VideoAdvertisementsRepoBFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -235,7 +235,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoAdvertisementsRepoCFingerprint.method.apply {
+        VideoAdvertisementsRepoCFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -244,7 +244,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoAdvertisementsRepoDFingerprint.method.apply {
+        VideoAdvertisementsRepoDFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -254,7 +254,7 @@ val videoAdsPatch = bytecodePatch(
         }
 
         // Prevent VideoAdLayout from showing ad overlays in video player
-        VideoAdLayoutAFingerprint.method.apply {
+        VideoAdLayoutAFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -264,7 +264,7 @@ val videoAdsPatch = bytecodePatch(
         }
 
         // Return null for video file ad getters so player sees no attached ad streams
-        VideoFileOldInstreamAdFingerprint.method.apply {
+        VideoFileOldInstreamAdFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -274,7 +274,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoFileOldVideoAdInfoFingerprint.method.apply {
+        VideoFileOldVideoAdInfoFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -284,7 +284,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoFileOldOrdAdInfoFingerprint.method.apply {
+        VideoFileOldOrdAdInfoFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -295,7 +295,7 @@ val videoAdsPatch = bytecodePatch(
         }
 
         // Prevent VideoAttachment from returning or holding attached promo cards (ShitAttachment)
-        VideoAttachmentBcFingerprint.method.apply {
+        VideoAttachmentBcFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -305,7 +305,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoAttachmentGcFingerprint.method.apply {
+        VideoAttachmentGcFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -315,7 +315,7 @@ val videoAdsPatch = bytecodePatch(
         }
 
         // Neutralize VideoGrowth traps and "Смотри в приложении VK Видео" popups / bottomsheets
-        VideoGrowthTrapsManagerAFingerprint.method.apply {
+        VideoGrowthTrapsManagerAFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -324,7 +324,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoGrowthTrapsManagerBFingerprint.method.apply {
+        VideoGrowthTrapsManagerBFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -333,7 +333,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoGrowthTrapsManagerCFingerprint.method.apply {
+        VideoGrowthTrapsManagerCFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -342,7 +342,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoGrowthTrapLauncherAFingerprint.method.apply {
+        VideoGrowthTrapLauncherAFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -351,7 +351,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoGrowthBombingControllerAFingerprint.method.apply {
+        VideoGrowthBombingControllerAFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -361,7 +361,7 @@ val videoAdsPatch = bytecodePatch(
             )
         }
 
-        VideoGrowthListingControllerBFingerprint.method.apply {
+        VideoGrowthListingControllerBFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -370,7 +370,7 @@ val videoAdsPatch = bytecodePatch(
                 """
             )
         }
-BackgroundRestrictionProviderBFingerprint.method.apply {
+BackgroundRestrictionProviderBFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -380,7 +380,7 @@ BackgroundRestrictionProviderBFingerprint.method.apply {
             )
         }
 
-        TrapBottomSheetOnStartFingerprint.method.apply {
+        TrapBottomSheetOnStartFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -390,7 +390,7 @@ BackgroundRestrictionProviderBFingerprint.method.apply {
             )
         }
 
-        TrapBannerDelegateAFingerprint.method.apply {
+        TrapBannerDelegateAFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -399,7 +399,7 @@ BackgroundRestrictionProviderBFingerprint.method.apply {
             )
         }
 
-        TrapBannerDelegateBFingerprint.method.apply {
+        TrapBannerDelegateBFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -408,7 +408,7 @@ BackgroundRestrictionProviderBFingerprint.method.apply {
             )
         }
 
-        TrapBannerDelegateCFingerprint.method.apply {
+        TrapBannerDelegateCFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -418,7 +418,7 @@ BackgroundRestrictionProviderBFingerprint.method.apply {
             )
         }
 
-        VideoGrowthTrapCoordinatorBFingerprint.method.apply {
+        VideoGrowthTrapCoordinatorBFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
@@ -428,7 +428,7 @@ BackgroundRestrictionProviderBFingerprint.method.apply {
             )
         }
 
-        VideoGrowthTrapCoordinatorAFingerprint.method.apply {
+        VideoGrowthTrapCoordinatorAFingerprint.methodOrNull?.apply {
             addInstructions(
                 0,
                 """
