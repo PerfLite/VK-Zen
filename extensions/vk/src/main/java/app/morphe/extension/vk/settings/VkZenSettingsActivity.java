@@ -423,6 +423,14 @@ public class VkZenSettingsActivity extends Activity {
             row.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    // Swapping keeps the list a strict permutation: without this the chosen tab
+                    // appears twice and the displaced one silently drops out of the order.
+                    for (int k = 0; k < slots.length; k++) {
+                        if (k != slotIndex && key.equalsIgnoreCase(slots[k])) {
+                            slots[k] = slots[slotIndex];
+                            break;
+                        }
+                    }
                     slots[slotIndex] = key;
                     String stored = NavigationFilter.getEffectiveTabs(
                             NavigationFilter.getPrefs(VkZenSettingsActivity.this));

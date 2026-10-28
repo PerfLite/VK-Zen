@@ -373,12 +373,18 @@ public class NavigationFilter {
      * for tabs VK has not sent right now: those are re-inserted at their previous positions.
      */
     public static String mergeOrder(String saved, String[] newOrder) {
-        LinkedHashSet<String> available = new LinkedHashSet<>(java.util.Arrays.asList(newOrder));
-        ArrayList<String> result = new ArrayList<>(available);
+        LinkedHashSet<String> chosen = new LinkedHashSet<>(java.util.Arrays.asList(newOrder));
+        ArrayList<String> result = new ArrayList<>(chosen);
+        String[] platformTabs = availableKeys();
         String[] previous = saved.split(",");
         for (int i = 0; i < previous.length; i++) {
             String key = previous[i].trim().toLowerCase();
-            if (isPlaceholder(key) || available.contains(key) || result.contains(key)) {
+            if (isPlaceholder(key) || chosen.contains(key) || result.contains(key)) {
+                continue;
+            }
+            // Only tabs the platform does not offer right now keep their old position; anything
+            // VK actually has was already placed (or swapped) by the user's new order.
+            if (resolveKey(key, platformTabs) != null) {
                 continue;
             }
             result.add(Math.min(i, result.size()), key);
