@@ -218,7 +218,7 @@ public class VkZenSettingsActivity extends Activity {
         card.addView(title);
 
         TextView desc = new TextView(this);
-        desc.setText("Нажмите на слот, чтобы выбрать для него любую вкладку:");
+        desc.setText("VK показывает в нижней панели только эти пять вкладок — можно задать, какая из них в каком слоте стоит:");
         desc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         desc.setTextColor(colorTextSecondary);
         desc.setPadding(0, dp(2), 0, dp(12));

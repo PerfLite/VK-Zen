@@ -17,6 +17,7 @@ import android.widget.Toast;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public class NavigationFilter {
@@ -29,20 +30,21 @@ public class NavigationFilter {
     private static final int TABS_VERSION = 2;
     private static final String DEFAULT_TABS = "home,friends,im,music,hub";
 
+    /**
+     * The bottom bar in VK 8.201 only ever renders these tabs; the rest of the app's surfaces
+     * (clips, video, groups, profile) are not addressable as bar items, so offering them would
+     * only produce a slot that silently falls back to another tab.
+     */
     public static final String[] ALL_TAB_KEYS = {
-        "home", "friends", "im", "music", "hub", "groups", "profile", "clips", "video"
+        "home", "friends", "im", "music", "hub"
     };
 
     public static final String[] ALL_TAB_LABELS = {
-        "Главная (Новости)",
+        "Главная",
         "Друзья",
-        "Сообщения (Чаты)",
+        "Сообщения",
         "Музыка",
-        "Сервисы",
-        "Сообщества (Группы)",
-        "Профиль",
-        "Клипы",
-        "Видео"
+        "Сервисы"
     };
 
     /**
@@ -225,7 +227,54 @@ public class NavigationFilter {
         if (saved == null || saved.trim().isEmpty()) {
             return DEFAULT_TABS;
         }
-        return saved;
+        return normalizeTabs(saved);
+    }
+
+    /**
+     * Turns any stored value into a complete, duplicate-free permutation of the available tabs:
+     * unknown keys (from older builds that offered them) are dropped and missing ones appended,
+     * so a stale preference can never degrade into a partially applied order.
+     */
+    public static String normalizeTabs(String raw) {
+        LinkedHashSet<String> kept = new LinkedHashSet<>();
+        for (String token : raw.split(",")) {
+            String key = reverseAlias(token.trim().toLowerCase());
+            if (isKnownKey(key)) {
+                kept.add(key);
+            } else if (!key.isEmpty()) {
+                logOnce("normalizeTabs: dropping unavailable tab \"" + key + "\"");
+            }
+        }
+        for (String key : ALL_TAB_KEYS) {
+            if (!kept.contains(key)) {
+                kept.add(key);
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String key : kept) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(key);
+        }
+        return sb.toString();
+    }
+
+    private static boolean isKnownKey(String key) {
+        for (String known : ALL_TAB_KEYS) {
+            if (known.equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Saved values may carry VK's alternate spellings; fold them onto our stable keys. */
+    private static String reverseAlias(String key) {
+        if (key.equals("overview")) return "friends";
+        if (key.equals("news")) return "home";
+        if (key.equals("services")) return "hub";
+        return key;
     }
 
     /**
