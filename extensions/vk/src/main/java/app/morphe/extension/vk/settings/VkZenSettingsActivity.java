@@ -489,6 +489,12 @@ public class VkZenSettingsActivity extends Activity {
             row.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    // Placing a tab into a slot means the user wants it visible; "hidden" is a
+                    // property of the tab, so without this it kept its hidden flag and the bar
+                    // looked unchanged.
+                    if (NavigationFilter.isHidden(key)) {
+                        NavigationFilter.setHidden(VkZenSettingsActivity.this, key, false);
+                    }
                     // Swapping keeps the list a strict permutation: without this the chosen tab
                     // appears twice and the displaced one silently drops out of the order.
                     for (int k = 0; k < slots.length; k++) {
