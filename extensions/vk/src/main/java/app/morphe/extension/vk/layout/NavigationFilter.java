@@ -30,27 +30,29 @@ public class NavigationFilter {
     private static final String KEY_TABS_VERSION = "tabs_version";
     private static final int TABS_VERSION = 2;
     /**
-     * Default arrangement = what VK currently puts in the bar. Music is not part of it because
-     * the server leaves it out for some accounts; it stays available as an opt-in extra below.
+     * Default arrangement: Главная, Друзья, Сообщения, Музыка, Сервисы. The music slot shows up
+     * either when VK's own config includes it or through the opt-in "add missing tabs" switch,
+     * since the server leaves it out for some accounts.
      */
-    public static final String DEFAULT_TABS = "home,friends,im,hub,overview,clips";
+    public static final String DEFAULT_TABS = "home,friends,im,music,hub";
+
     private static final String KEY_SEEN_TABS = "seen_tabs";
     private static final String KEY_HIDDEN_TABS = "hidden_tabs";
     private static final String KEY_ADD_MISSING = "add_missing_tabs";
 
     /** Fallback used until VK's actual tab list has been observed at least once. */
     public static final String[] ALL_TAB_KEYS = {
-        "home", "friends", "im", "hub", "overview", "clips", "music"
+        "home", "friends", "im", "music", "hub", "overview", "clips"
     };
 
     public static final String[] ALL_TAB_LABELS = {
         "Главная",
         "Друзья",
         "Сообщения",
+        "Музыка",
         "Сервисы",
         "Обзор",
-        "Клипы",
-        "Музыка"
+        "Клипы"
     };
 
     /** Labels for keys VK can send but that our fallback list does not contain. */
