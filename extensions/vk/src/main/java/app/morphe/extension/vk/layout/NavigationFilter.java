@@ -186,11 +186,12 @@ public class NavigationFilter {
 
     /**
      * Opt-in switch: put back tabs that this VK build knows how to open but did not include in
-     * the current server payload (music being the common one).
+     * the current server payload (music being the common one). On by default so the default tab
+     * order actually renders as advertised; it stays a user-visible switch in the settings.
      */
     public static boolean isAddMissingEnabled() {
         SharedPreferences prefs = getPrefs(null);
-        return prefs != null && prefs.getBoolean(KEY_ADD_MISSING, false);
+        return prefs == null || prefs.getBoolean(KEY_ADD_MISSING, true);
     }
 
     public static void setAddMissing(Context context, boolean enabled) {
