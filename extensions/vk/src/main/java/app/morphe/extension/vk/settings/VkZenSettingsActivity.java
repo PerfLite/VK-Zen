@@ -268,7 +268,7 @@ public class VkZenSettingsActivity extends Activity {
         btnReset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NavigationFilter.saveTabs(VkZenSettingsActivity.this, "home,friends,im,music,hub");
+                NavigationFilter.saveTabs(VkZenSettingsActivity.this, NavigationFilter.DEFAULT_TABS);
                 refreshSlotsList();
                 Toast.makeText(VkZenSettingsActivity.this, "Вкладки сброшены по умолчанию!", Toast.LENGTH_SHORT).show();
             }

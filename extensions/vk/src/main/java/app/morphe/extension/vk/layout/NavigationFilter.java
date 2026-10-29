@@ -29,7 +29,7 @@ public class NavigationFilter {
     private static final String KEY_TABS = "user_tabs";
     private static final String KEY_TABS_VERSION = "tabs_version";
     private static final int TABS_VERSION = 2;
-    private static final String DEFAULT_TABS = "home,friends,im,music,hub";
+    public static final String DEFAULT_TABS = "home,friends,im,music,hub";
     private static final String KEY_SEEN_TABS = "seen_tabs";
     private static final String KEY_HIDDEN_TABS = "hidden_tabs";
     private static final String KEY_ADD_MISSING = "add_missing_tabs";
