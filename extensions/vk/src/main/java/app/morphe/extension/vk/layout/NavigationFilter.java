@@ -29,22 +29,28 @@ public class NavigationFilter {
     private static final String KEY_TABS = "user_tabs";
     private static final String KEY_TABS_VERSION = "tabs_version";
     private static final int TABS_VERSION = 2;
-    public static final String DEFAULT_TABS = "home,friends,im,music,hub";
+    /**
+     * Default arrangement = what VK currently puts in the bar. Music is not part of it because
+     * the server leaves it out for some accounts; it stays available as an opt-in extra below.
+     */
+    public static final String DEFAULT_TABS = "home,friends,im,hub,overview,clips";
     private static final String KEY_SEEN_TABS = "seen_tabs";
     private static final String KEY_HIDDEN_TABS = "hidden_tabs";
     private static final String KEY_ADD_MISSING = "add_missing_tabs";
 
     /** Fallback used until VK's actual tab list has been observed at least once. */
     public static final String[] ALL_TAB_KEYS = {
-        "home", "friends", "im", "music", "hub"
+        "home", "friends", "im", "hub", "overview", "clips", "music"
     };
 
     public static final String[] ALL_TAB_LABELS = {
         "Главная",
         "Друзья",
         "Сообщения",
-        "Музыка",
-        "Сервисы"
+        "Сервисы",
+        "Обзор",
+        "Клипы",
+        "Музыка"
     };
 
     /** Labels for keys VK can send but that our fallback list does not contain. */
