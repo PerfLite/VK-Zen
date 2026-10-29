@@ -89,28 +89,102 @@ val nativePatch = resourcePatch(
             println("WARNING: libvkcore.so anti-tamper patch failed: ${t.message}")
         }
 
-        // libvkmedia.so: voice-message tamper-kill branches. Located by expected opcode at a
-        // known offset; silently skipped on builds where the offset no longer matches.
+        // libvkmedia.so: the voice-message anti-tamper. Located by structure instead of by
+        // offset, because VK moves this code in every build (8.195 and 8.201 differ).
+        //
+        // A kill block is `mov w0, #1 ; bl _exit`. The library contains several, but only the
+        // tamper ones are entered by exactly one conditional branch (tbz / b.cond) testing the
+        // verification result - that branch is the site to neutralize. Verified on 8.195 and
+        // 8.201: both expose exactly four such guarded blocks, and the other blocks have none.
+        //
+        // tbz sites can simply be nopped: their fall-through is valid code. The b.cond site
+        // cannot - its fall-through is a JNI ThrowNew("error! verify new libraries in
+        // application!"), so it is redirected to the routine's own epilogue (stack canary check
+        // + ret), which sits 0x20 before the kill block in both builds and is verified by
+        // signature before anything is written.
         try {
-            val nop = byteArrayOf(0x1f, 0x20, 0x03, 0xd5.toByte())
-            val sites = listOf(
-                Triple(0x68874, byteArrayOf(0x80.toByte(), 0x07, 0x00, 0x36), nop),
-                Triple(0x689ac, byteArrayOf(0x80.toByte(), 0x29, 0x00, 0x36), nop),
-                Triple(0x68f1c, byteArrayOf(0x80.toByte(), 0x08, 0x00, 0x36), nop),
-                Triple(0x6d540, byteArrayOf(0x00, 0x05, 0x00, 0x54), byteArrayOf(0x20, 0x00, 0x00, 0x14)),
-            )
             val media = this["lib/arm64-v8a/libvkmedia.so"]
             if (media.exists()) {
-                val mb = media.readBytes()
-                var patched = 0
-                for ((off, expect, repl) in sites) {
-                    if (off + expect.size <= mb.size && mb.copyOfRange(off, off + expect.size).contentEquals(expect)) {
-                        repl.copyInto(mb, off); patched++
+                val b = media.readBytes()
+
+                fun u32(at: Int): Int =
+                    (b[at].toInt() and 0xff) or ((b[at + 1].toInt() and 0xff) shl 8) or
+                        ((b[at + 2].toInt() and 0xff) shl 16) or ((b[at + 3].toInt() and 0xff) shl 24)
+
+                val movW0One = 0x52800020
+                val bcondMask = 0xFF000010.toInt()
+                val tbzMask = 0x7e000010
+                val nopBytes = byteArrayOf(0x1f, 0x20, 0x03, 0xd5.toByte())
+
+                val blocks = ArrayList<Int>()
+                for (off in 0 until b.size - 8 step 4) {
+                    if (u32(off) == movW0One) {
+                        val bl = u32(off + 4)
+                        if (bl ushr 26 == 0b100101) blocks.add(off)
                     }
                 }
+
+                val blockSet = blocks.toHashSet()
+                val guardsByBlock = HashMap<Int, ArrayList<Int>>()
+                if (blockSet.isNotEmpty()) {
+                    // Stay inside the code region: scanning data could invent fake branches.
+                    val scanFrom = (blocks.min() - 0x10000).coerceAtLeast(0)
+                    val scanTo = (blocks.max() + 0x1000).coerceAtMost(b.size - 4)
+                    for (off in scanFrom until scanTo step 4) {
+                        val ins = u32(off)
+                        val isCond = (ins and bcondMask) == 0x54000000
+                        val isTbz = (ins and tbzMask) == 0x36000000
+                        if (!isCond && !isTbz) continue
+                        var imm = (ins ushr 5) and 0x7ffff
+                        if (imm and 0x40000 != 0) imm -= 0x80000
+                        val target = off + (imm shl 2)
+                        if (blockSet.contains(target)) {
+                            guardsByBlock.getOrPut(target) { ArrayList() }.add(off)
+                        }
+                    }
+                }
+
+                var patched = 0
+                var skipped = 0
+                for ((block, guards) in guardsByBlock) {
+                    if (guards.size != 1) {
+                        println("WARNING: libvkmedia kill block 0x${block.toString(16)} has ${guards.size} guards, left alone")
+                        skipped += guards.size
+                        continue
+                    }
+                    val guard = guards.single()
+                    val isTbz = (u32(guard) and tbzMask) == 0x36000000
+                    if (isTbz) {
+                        nopBytes.copyInto(b, guard)
+                        patched++
+                        println("Neutralized libvkmedia tbz kill guard at 0x${guard.toString(16)}")
+                    } else {
+                        val epilogue = block - 0x20
+                        // Anchors: the kill block is preceded by its own function's epilogue,
+                        // ending in `ret`, and starting with the stack-canary load.
+                        val looksLikeEpilogue = epilogue >= 0 &&
+                            u32(block - 4) == 0xd65f03c0.toInt() &&
+                            u32(epilogue) == 0xf9401688.toInt()
+                        if (!looksLikeEpilogue) {
+                            println("WARNING: libvkmedia epilogue not found before block 0x${block.toString(16)}, guard 0x${guard.toString(16)} left alone")
+                            skipped++
+                            continue
+                        }
+                        val imm26 = ((epilogue - guard) shr 2) and 0x03ffffff
+                        val encoded = 0x14000000 or imm26
+                        for (k in 0..3) {
+                            b[guard + k] = ((encoded ushr (8 * k)) and 0xff).toByte()
+                        }
+                        patched++
+                        println("Redirected libvkmedia b.cond guard 0x${guard.toString(16)} -> epilogue 0x${epilogue.toString(16)}")
+                    }
+                }
+
                 if (patched > 0) {
-                    media.writeBytes(mb)
-                    println("Patched $patched libvkmedia.so tamper-kill branches")
+                    media.writeBytes(b)
+                    println("Patched $patched libvkmedia.so tamper-kill guards (skipped=$skipped)")
+                } else {
+                    println("WARNING: no libvkmedia kill guards located - voice messages may still crash")
                 }
             }
         } catch (t: Throwable) {
