@@ -30,6 +30,8 @@ import android.widget.Toast;
 import app.morphe.extension.vk.layout.NavigationFilter;
 import app.morphe.extension.vk.video.VideoQualityHelper;
 
+import java.util.ArrayList;
+
 public class VkZenSettingsActivity extends Activity {
 
     private boolean isDark;
@@ -304,10 +306,28 @@ public class VkZenSettingsActivity extends Activity {
         slotsContainer.removeAllViews();
 
         final String[] slots = getCurrentSlots();
+        // Hidden tabs would otherwise keep a row and a number, so the numbering stopped matching
+        // the positions the bar actually shows. Visible rows come first and carry their real
+        // slot number; hidden ones move below with a dash.
+        ArrayList<Integer> displayOrder = new ArrayList<>();
         for (int i = 0; i < slots.length; i++) {
-            final int slotIndex = i;
-            String key = slots[i];
+            if (!NavigationFilter.isHidden(slots[i])) {
+                displayOrder.add(i);
+            }
+        }
+        int visibleCount = displayOrder.size();
+        for (int i = 0; i < slots.length; i++) {
+            if (NavigationFilter.isHidden(slots[i])) {
+                displayOrder.add(i);
+            }
+        }
+
+        for (int d = 0; d < displayOrder.size(); d++) {
+            final int slotIndex = displayOrder.get(d);
+            final int displayNumber = d;
+            String key = slots[slotIndex];
             String label = NavigationFilter.labelFor(key);
+            final boolean tabHidden = NavigationFilter.isHidden(key);
 
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
@@ -318,14 +338,14 @@ public class VkZenSettingsActivity extends Activity {
 
             // Slot badge
             TextView badge = new TextView(this);
-            badge.setText(String.valueOf(i + 1));
+            badge.setText(displayNumber < visibleCount ? String.valueOf(displayNumber + 1) : "—");
             badge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             badge.setTypeface(Typeface.DEFAULT_BOLD);
             badge.setTextColor(Color.WHITE);
             badge.setGravity(Gravity.CENTER);
             GradientDrawable badgeBg = new GradientDrawable();
             badgeBg.setShape(GradientDrawable.OVAL);
-            badgeBg.setColor(colorAccent);
+            badgeBg.setColor(tabHidden ? colorTextSecondary : colorAccent);
             badge.setBackground(badgeBg);
             LinearLayout.LayoutParams lpBadge = new LinearLayout.LayoutParams(dp(24), dp(24));
             lpBadge.setMargins(0, 0, dp(12), 0);
@@ -334,7 +354,6 @@ public class VkZenSettingsActivity extends Activity {
 
             // Slot text
             TextView text = new TextView(this);
-            final boolean tabHidden = NavigationFilter.isHidden(key);
             text.setText(label + (tabHidden ? " (скрыта)" : ""));
             text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             text.setTextColor(tabHidden ? colorTextSecondary : colorTextPrimary);
@@ -379,7 +398,7 @@ public class VkZenSettingsActivity extends Activity {
 
             slotsContainer.addView(row);
 
-            if (i < slots.length - 1) {
+            if (displayNumber < displayOrder.size() - 1) {
                 View divider = new View(this);
                 divider.setBackgroundColor(colorStroke);
                 LinearLayout.LayoutParams lpDiv = new LinearLayout.LayoutParams(
