@@ -483,25 +483,23 @@ public class NavigationFilter {
      * reappear in their slot as soon as VK adds the tab back.
      */
     public static String[] displayOrder(String saved) {
-        String[] available = availableKeys();
+        // Resolve against what the picker offers, not only what VK sent: with the opt-in on,
+        // "music" is a legitimate saved entry even though it is absent from the payload, and
+        // resolving it away made it jump back to the last row on every reopen.
+        String[] universe = choiceKeys();
         LinkedHashSet<String> order = new LinkedHashSet<>();
         for (String token : saved.split(",")) {
             String key = token.trim().toLowerCase();
             if (isPlaceholder(key)) {
                 continue;
             }
-            String resolved = resolveKey(key, available);
+            String resolved = resolveKey(key, universe);
             if (resolved != null) {
                 order.add(resolved);
             }
         }
-        for (String key : available) {
+        for (String key : universe) {
             order.add(key);
-        }
-        if (isAddMissingEnabled()) {
-            for (String key : ALL_TAB_KEYS) {
-                order.add(key);
-            }
         }
         return order.toArray(new String[0]);
     }
