@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.4] - 2026-11-28
+
+### Исправления
+- **Клонирование и иконка:** Убрана принудительная зависимость `App icon colors` от `Clone app` ([`IconColorPatch.kt`](patches/src/main/kotlin/app/morphe/patches/vk/misc/IconColorPatch.kt)) — теперь при отключении `Clone app` в Morphe Manager пакет остаётся оригинальным (`com.vkontakte.android`), а не клонируется принудительно (по репорту [#14](https://github.com/PerfLite/VK-Zen/issues/14) от @dhwz).
+
 ## [1.2.3] - 2026-11-26
 
 ### Исправления

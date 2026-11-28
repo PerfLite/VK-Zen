@@ -74,9 +74,9 @@ private fun hsvToRgb(hue: Float, saturation: Float, value: Float): IntArray {
     )
 }
 
-// The artwork comes from the classpath: finalize blocks run in reverse execution order, so
-// the clone patch writes the same layers after this one and would undo the recolor if it
-// did not skip files that already exist.
+// The artwork comes from the classpath: when both patches are enabled, finalize blocks may
+// run in either order, so CloneAppPatch skips layers that already exist and this patch
+// ensures target directories are created before writing.
 private fun loadArtwork(relPath: String): ByteArray? {
     val loader = Thread.currentThread().contextClassLoader ?: object {}.javaClass.classLoader
     val stream = loader?.getResourceAsStream("zen_icons/$relPath")
@@ -124,7 +124,6 @@ val iconColorPatch = resourcePatch(
     default = true,
 ) {
     compatibleWith(COMPATIBILITY_VK)
-    dependsOn(cloneAppPatch)
 
     val glowColor: Option<String> = colorOption(
         key = "glowColor",
@@ -160,7 +159,9 @@ val iconColorPatch = resourcePatch(
                 val relPath = "res/mipmap-$density-v4/$name"
                 val source = loadArtwork(relPath) ?: continue
                 val recolored = recolorArtwork(source, glow, plate) ?: continue
-                get(relPath).writeBytes(recolored)
+                val target = get(relPath)
+                target.parentFile?.mkdirs()
+                target.writeBytes(recolored)
                 layers++
             }
         }
